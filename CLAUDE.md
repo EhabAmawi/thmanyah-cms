@@ -86,3 +86,11 @@ npx prisma studio       # Open Prisma Studio (database GUI)
 - `PrismaExceptionFilter` - Global exception filter for consistent error responses
 - No hardcoded Prisma error codes in business logic
 - All Prisma errors handled centrally with proper HTTP exceptions
+
+### API Documentation (Swagger)
+- NestJS Swagger integration with `@nestjs/swagger` package
+- Interactive Swagger UI available at `/api` endpoint
+- Complete API documentation with request/response schemas
+- All endpoints documented with descriptions, parameters, and examples
+- DTOs fully documented with property descriptions and example values
+- API documentation JSON available at `/api-json` endpoint
