@@ -72,3 +72,17 @@ npx prisma studio       # Open Prisma Studio (database GUI)
 - E2E tests are in the `test` directory
 - Prisma is configured with PostgreSQL and integrated as a global module
 - Update DATABASE_URL in `.env` with your PostgreSQL connection string before running migrations
+
+## Features Implemented
+
+### Employees Module
+- Complete CRUD operations with REST API endpoints
+- Prisma database integration with PostgreSQL
+- Query filtering (active employees, by department)
+- Comprehensive test coverage (unit + integration tests)
+
+### Centralized Error Handling
+- `PrismaErrorMapperService` - Maps Prisma error codes to HTTP status codes
+- `PrismaExceptionFilter` - Global exception filter for consistent error responses
+- No hardcoded Prisma error codes in business logic
+- All Prisma errors handled centrally with proper HTTP exceptions
