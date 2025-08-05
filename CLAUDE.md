@@ -54,6 +54,7 @@ npx prisma studio       # Open Prisma Studio (database GUI)
   - `src/app.service.ts` - Main service
   - `src/auth/` - Authentication module with JWT and local strategies
   - `src/employees/` - Employee management module
+  - `src/categories/` - Category management module
   - `src/prisma/` - Prisma service and module for database integration
   - `src/common/` - Shared services and filters
 - **Testing**: Jest for unit tests, Supertest for e2e tests
@@ -75,7 +76,7 @@ npx prisma studio       # Open Prisma Studio (database GUI)
 - Jest is configured to run tests from the `src` directory with `.spec.ts` pattern
 - E2E tests are in the `test` directory
 - Prisma is configured with PostgreSQL and integrated as a global module
-- Authentication is required for all employee endpoints (JWT Bearer token)
+- Authentication is required for all employee and category endpoints (JWT Bearer token)
 - Update DATABASE_URL and JWT_SECRET in `.env` before running the application
 - All API endpoints are documented with Swagger at `/api`
 
@@ -102,6 +103,20 @@ npx prisma studio       # Open Prisma Studio (database GUI)
 - Password exclusion from all API responses for security
 - Comprehensive test coverage (unit + integration + e2e tests)
 
+### Categories Module
+- Complete CRUD operations with REST API endpoints
+- JWT Authentication required for all endpoints
+- Prisma database integration with PostgreSQL
+- Query filtering (active categories)
+- Unique constraint on category names
+- Comprehensive test coverage (unit + integration + e2e tests)
+- **Category Endpoints**:
+  - `POST /categories` - Create new category
+  - `GET /categories` - Get all categories (with optional `?active=true` filter)
+  - `GET /categories/:id` - Get category by ID
+  - `PATCH /categories/:id` - Update category
+  - `DELETE /categories/:id` - Delete category
+
 ### Centralized Error Handling
 - `PrismaErrorMapperService` - Maps Prisma error codes to HTTP status codes
 - `PrismaExceptionFilter` - Global exception filter for consistent error responses
@@ -119,20 +134,25 @@ npx prisma studio       # Open Prisma Studio (database GUI)
 - API documentation JSON available at `/api-json` endpoint
 
 ### Comprehensive Testing Suite
-- **Unit Tests**: 99+ tests covering all auth components
+- **Unit Tests**: 126+ tests covering all components
   - AuthService: Login, token refresh, user validation
   - AuthController: All endpoints with success/error scenarios
   - JWT Strategy: Token validation and user lookup
   - Local Strategy: Email/password authentication
   - Auth Guards: JWT and Local authentication guards
   - Auth Module: Dependency injection and configuration
-- **Integration Tests**: Auth module integration with real dependencies
-- **End-to-End Tests**: Complete authentication flows with real database
+  - EmployeesService & Controller: Complete CRUD operations
+  - CategoriesService & Controller: Complete CRUD operations
+  - PrismaErrorMapper & ExceptionFilter: Error handling
+- **Integration Tests**: Module integration with real dependencies
+- **End-to-End Tests**: Complete API flows with real database (50+ tests)
   - Full login → access → refresh token lifecycle
   - Protected endpoint access testing
   - Authentication-enabled employee CRUD operations
+  - Authentication-enabled category CRUD operations
   - Input validation and error handling
-- **Test Coverage**: All authentication scenarios, edge cases, and security validations
+  - Database constraint testing
+- **Test Coverage**: All authentication scenarios, CRUD operations, edge cases, and security validations
 
 ## API Usage
 
@@ -148,8 +168,11 @@ curl -X POST http://localhost:3000/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "user@example.com", "password": "password123"}'
 
-# Access protected endpoint
+# Access protected endpoints
 curl -X GET http://localhost:3000/employees \
+  -H "Authorization: Bearer <access_token>"
+
+curl -X GET http://localhost:3000/categories \
   -H "Authorization: Bearer <access_token>"
 
 # Refresh token
@@ -163,6 +186,39 @@ curl -X POST http://localhost:3000/auth/refresh \
 DATABASE_URL="postgresql://username:password@localhost:5432/thmanyah_cms"
 JWT_SECRET="your-secret-key-here"
 PORT=3000  # Optional, defaults to 3000
+```
+
+## Database Schema & Migrations
+
+### Database Models
+- **Employee**: User accounts with authentication
+  - Fields: id, firstName, lastName, email, password, phone, department, position, salary, hireDate, isActive, createdAt, updatedAt
+  - Unique constraint on email
+- **Category**: Content categorization system
+  - Fields: id, name, description, isActive, createdAt, updatedAt
+  - Unique constraint on name
+
+### Migration History
+- `20250805172112_add_employees_model` - Initial employees table
+- `20250805172417_add_password_to_employees` - Added password field to employees
+- `20250805200754_add_categories_table` - Added categories table with unique name constraint
+
+### Database Commands
+```bash
+# Apply migrations in development
+npx prisma migrate dev
+
+# Apply migrations in production
+npx prisma migrate deploy
+
+# Reset database (development only)
+npx prisma migrate reset
+
+# Generate Prisma client after schema changes
+npx prisma generate
+
+# Open database GUI
+npx prisma studio
 ```
 
 ## Security Features
