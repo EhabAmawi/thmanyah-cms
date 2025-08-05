@@ -55,6 +55,7 @@ npx prisma studio       # Open Prisma Studio (database GUI)
   - `src/auth/` - Authentication module with JWT and local strategies
   - `src/employees/` - Employee management module
   - `src/categories/` - Category management module
+  - `src/programs/` - Program management module
   - `src/prisma/` - Prisma service and module for database integration
   - `src/common/` - Shared services and filters
 - **Testing**: Jest for unit tests, Supertest for e2e tests
@@ -76,7 +77,7 @@ npx prisma studio       # Open Prisma Studio (database GUI)
 - Jest is configured to run tests from the `src` directory with `.spec.ts` pattern
 - E2E tests are in the `test` directory
 - Prisma is configured with PostgreSQL and integrated as a global module
-- Authentication is required for all employee and category endpoints (JWT Bearer token)
+- Authentication is required for all employee, category, and program endpoints (JWT Bearer token)
 - Update DATABASE_URL and JWT_SECRET in `.env` before running the application
 - All API endpoints are documented with Swagger at `/api`
 
@@ -117,6 +118,24 @@ npx prisma studio       # Open Prisma Studio (database GUI)
   - `PATCH /categories/:id` - Update category
   - `DELETE /categories/:id` - Delete category
 
+### Programs Module
+- Complete CRUD operations with REST API endpoints
+- JWT Authentication required for all endpoints
+- Program management with media content support
+- Multi-language support (English/Arabic) with Language enum
+- Media type support (Video/Audio) with MediaType enum
+- Duration tracking in seconds with validation
+- Release date management with proper date handling
+- Media URL validation and storage
+- Query filtering (by language, media type, recent programs)
+- Comprehensive test coverage (15 unit tests + 19 e2e tests)
+- **Program Endpoints**:
+  - `POST /programs` - Create new program
+  - `GET /programs` - List all programs (with optional filtering)
+  - `GET /programs/:id` - Get program by ID
+  - `PATCH /programs/:id` - Update program
+  - `DELETE /programs/:id` - Delete program
+
 ### Centralized Error Handling
 - `PrismaErrorMapperService` - Maps Prisma error codes to HTTP status codes
 - `PrismaExceptionFilter` - Global exception filter for consistent error responses
@@ -134,7 +153,7 @@ npx prisma studio       # Open Prisma Studio (database GUI)
 - API documentation JSON available at `/api-json` endpoint
 
 ### Comprehensive Testing Suite
-- **Unit Tests**: 126+ tests covering all components
+- **Unit Tests**: 130+ tests covering all components
   - AuthService: Login, token refresh, user validation
   - AuthController: All endpoints with success/error scenarios
   - JWT Strategy: Token validation and user lookup
@@ -143,15 +162,16 @@ npx prisma studio       # Open Prisma Studio (database GUI)
   - Auth Module: Dependency injection and configuration
   - EmployeesService & Controller: Complete CRUD operations
   - CategoriesService & Controller: Complete CRUD operations
+  - ProgramsService: All CRUD operations with filtering and validation
+  - ProgramsController: All REST endpoints with query parameters
   - PrismaErrorMapper & ExceptionFilter: Error handling
 - **Integration Tests**: Module integration with real dependencies
-- **End-to-End Tests**: Complete API flows with real database (50+ tests)
+- **End-to-End Tests**: Complete application flows with real database
   - Full login → access → refresh token lifecycle
   - Protected endpoint access testing
-  - Authentication-enabled employee CRUD operations
-  - Authentication-enabled category CRUD operations
+  - Authentication-enabled employee, category, and program CRUD operations
   - Input validation and error handling
-  - Database constraint testing
+  - Database constraint testing and cleanup
 - **Test Coverage**: All authentication scenarios, CRUD operations, edge cases, and security validations
 
 ## API Usage
@@ -175,10 +195,44 @@ curl -X GET http://localhost:3000/employees \
 curl -X GET http://localhost:3000/categories \
   -H "Authorization: Bearer <access_token>"
 
+curl -X GET http://localhost:3000/programs \
+  -H "Authorization: Bearer <access_token>"
+
 # Refresh token
 curl -X POST http://localhost:3000/auth/refresh \
   -H "Content-Type: application/json" \
   -d '{"refresh_token": "<refresh_token>"}'
+
+# Create a new program
+curl -X POST http://localhost:3000/programs \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Introduction to Programming",
+    "description": "A comprehensive programming course",
+    "language": "ENGLISH",
+    "durationSec": 3600,
+    "releaseDate": "2024-01-01T00:00:00.000Z",
+    "mediaUrl": "https://example.com/media/program1.mp4",
+    "mediaType": "VIDEO"
+  }'
+
+# Get programs with filtering
+curl -X GET "http://localhost:3000/programs?language=ENGLISH&mediaType=VIDEO" \
+  -H "Authorization: Bearer <access_token>"
+
+# Get recent programs
+curl -X GET "http://localhost:3000/programs?recent=5" \
+  -H "Authorization: Bearer <access_token>"
+
+# Update a program
+curl -X PATCH http://localhost:3000/programs/1 \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Program Title",
+    "durationSec": 7200
+  }'
 ```
 
 ### Environment Variables Required
@@ -228,3 +282,47 @@ npx prisma studio
 - **Error Handling**: Secure error responses that don't leak sensitive information
 - **CORS Protection**: Configured for secure cross-origin requests
 - **Route Protection**: All sensitive endpoints require valid authentication
+
+## Database Schema & Migrations
+
+### Database Models
+- **Employee**: User accounts with authentication
+  - Fields: id, firstName, lastName, email, password, phone, department, position, salary, hireDate, isActive, createdAt, updatedAt
+  - Unique constraint on email
+- **Category**: Content categorization system
+  - Fields: id, name, description, isActive, createdAt, updatedAt
+  - Unique constraint on name
+- **Program**: Media program management
+  - Fields: id, name, description, language, durationSec, releaseDate, mediaUrl, mediaType, createdAt, updatedAt
+  - Multi-language support (ENGLISH/ARABIC)
+  - Media type classification (VIDEO/AUDIO)
+  - Duration tracking and release date management
+  - Unique program name constraint
+
+### Enums
+- **Language**: ENGLISH, ARABIC
+- **MediaType**: VIDEO, AUDIO
+
+### Migration History
+- `20250805172112_add_employees_model` - Initial employees table
+- `20250805172417_add_password_to_employees` - Added password field to employees
+- `20250805200754_add_categories_table` - Added categories table with unique name constraint
+- `20250805200936_add_programs_table` - Added programs table with enums and constraints
+
+### Database Commands
+```bash
+# Apply migrations in development
+npx prisma migrate dev
+
+# Apply migrations in production
+npx prisma migrate deploy
+
+# Reset database (development only)
+npx prisma migrate reset
+
+# Generate Prisma client after schema changes
+npx prisma generate
+
+# Open database GUI
+npx prisma studio
+```
