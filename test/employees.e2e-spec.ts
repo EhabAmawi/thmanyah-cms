@@ -42,13 +42,15 @@ describe('EmployeesController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    
+
     // Apply global pipes and filters
-    app.useGlobalPipes(new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }));
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
 
     const errorMapper = new PrismaErrorMapperService();
     app.useGlobalFilters(new PrismaExceptionFilter(errorMapper));
@@ -90,7 +92,7 @@ describe('EmployeesController (e2e)', () => {
     }
 
     accessToken = loginResponse.body.access_token;
-    
+
     if (!accessToken) {
       console.error('No access token received:', loginResponse.body);
       throw new Error('No access token received from login');

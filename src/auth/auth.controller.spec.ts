@@ -193,9 +193,13 @@ describe('AuthController', () => {
         password: 'password123',
       };
 
-      mockAuthService.login.mockRejectedValue(new Error('Database connection failed'));
+      mockAuthService.login.mockRejectedValue(
+        new Error('Database connection failed'),
+      );
 
-      await expect(controller.login(loginDto)).rejects.toThrow('Database connection failed');
+      await expect(controller.login(loginDto)).rejects.toThrow(
+        'Database connection failed',
+      );
     });
 
     it('should handle service errors properly in refresh', async () => {
@@ -203,9 +207,13 @@ describe('AuthController', () => {
         refresh_token: 'some_token',
       };
 
-      mockAuthService.refreshToken.mockRejectedValue(new Error('JWT verification failed'));
+      mockAuthService.refreshToken.mockRejectedValue(
+        new Error('JWT verification failed'),
+      );
 
-      await expect(controller.refresh(refreshTokenDto)).rejects.toThrow('JWT verification failed');
+      await expect(controller.refresh(refreshTokenDto)).rejects.toThrow(
+        'JWT verification failed',
+      );
     });
 
     it('should handle service errors properly in getProfile', async () => {
@@ -215,9 +223,13 @@ describe('AuthController', () => {
         },
       };
 
-      mockAuthService.findUserById.mockRejectedValue(new Error('Database query failed'));
+      mockAuthService.findUserById.mockRejectedValue(
+        new Error('Database query failed'),
+      );
 
-      await expect(controller.getProfile(mockRequest)).rejects.toThrow('Database query failed');
+      await expect(controller.getProfile(mockRequest)).rejects.toThrow(
+        'Database query failed',
+      );
     });
   });
 });

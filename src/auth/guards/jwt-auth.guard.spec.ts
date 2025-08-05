@@ -30,9 +30,12 @@ describe('JwtAuthGuard', () => {
   describe('canActivate', () => {
     it('should call parent canActivate method', () => {
       const mockExecutionContext = {} as ExecutionContext;
-      
+
       // Spy on the parent method
-      const parentCanActivateSpy = jest.spyOn(Object.getPrototypeOf(Object.getPrototypeOf(guard)), 'canActivate');
+      const parentCanActivateSpy = jest.spyOn(
+        Object.getPrototypeOf(Object.getPrototypeOf(guard)),
+        'canActivate',
+      );
       parentCanActivateSpy.mockReturnValue(true);
 
       const result = guard.canActivate(mockExecutionContext);

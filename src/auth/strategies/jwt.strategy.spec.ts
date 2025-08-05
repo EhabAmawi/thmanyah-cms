@@ -61,7 +61,9 @@ describe('JwtStrategy', () => {
     it('should throw UnauthorizedException when user is not found', async () => {
       mockAuthService.findUserById.mockResolvedValue(null);
 
-      await expect(strategy.validate(mockPayload)).rejects.toThrow(UnauthorizedException);
+      await expect(strategy.validate(mockPayload)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException when authService throws error', async () => {
@@ -69,7 +71,9 @@ describe('JwtStrategy', () => {
         new UnauthorizedException('User not found'),
       );
 
-      await expect(strategy.validate(mockPayload)).rejects.toThrow(UnauthorizedException);
+      await expect(strategy.validate(mockPayload)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should handle different user IDs correctly', async () => {

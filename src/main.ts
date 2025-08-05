@@ -24,7 +24,8 @@ async function bootstrap() {
   // Swagger configuration
   const config = new DocumentBuilder()
     .setTitle('Thmanyah CMS API')
-    .setDescription(`
+    .setDescription(
+      `
       Content Management System API for Thmanyah with JWT Authentication
       
       ## Authentication
@@ -38,7 +39,8 @@ async function bootstrap() {
       - Refresh tokens expire in 7 days
       - All passwords are securely hashed with bcrypt
       - Employee endpoints require valid authentication
-    `)
+    `,
+    )
     .setVersion('1.0')
     .addServer('http://localhost:3000', 'Local development server')
     .addBearerAuth(
@@ -52,8 +54,14 @@ async function bootstrap() {
       },
       'JWT-auth',
     )
-    .addTag('authentication', 'Authentication endpoints for login, refresh, and profile')
-    .addTag('employees', 'Employee management endpoints (requires authentication)')
+    .addTag(
+      'authentication',
+      'Authentication endpoints for login, refresh, and profile',
+    )
+    .addTag(
+      'employees',
+      'Employee management endpoints (requires authentication)',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
