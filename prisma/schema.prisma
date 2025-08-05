@@ -18,6 +18,7 @@ model Employee {
   firstName String   @map("first_name")
   lastName  String   @map("last_name")
   email     String   @unique
+  password  String
   phone     String?
   department String?
   position  String?

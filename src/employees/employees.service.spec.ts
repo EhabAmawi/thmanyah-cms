@@ -3,6 +3,12 @@ import { EmployeesService } from './employees.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import * as bcrypt from 'bcryptjs';
+
+// Mock bcrypt
+jest.mock('bcryptjs', () => ({
+  hash: jest.fn().mockResolvedValue('hashedPassword123'),
+}));
 
 describe('EmployeesService', () => {
   let service: EmployeesService;
@@ -56,6 +62,7 @@ describe('EmployeesService', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'john.doe@example.com',
+        password: 'password123',
         phone: '+1234567890',
         department: 'IT',
         position: 'Developer',
@@ -66,8 +73,26 @@ describe('EmployeesService', () => {
 
       const result = await service.create(createEmployeeDto);
 
+      expect(bcrypt.hash).toHaveBeenCalledWith('password123', 10);
       expect(mockPrismaService.employee.create).toHaveBeenCalledWith({
-        data: createEmployeeDto,
+        data: {
+          ...createEmployeeDto,
+          password: 'hashedPassword123',
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          department: true,
+          position: true,
+          salary: true,
+          hireDate: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
       expect(result).toEqual(mockEmployee);
     });
@@ -81,6 +106,20 @@ describe('EmployeesService', () => {
       const result = await service.findAll();
 
       expect(mockPrismaService.employee.findMany).toHaveBeenCalledWith({
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          department: true,
+          position: true,
+          salary: true,
+          hireDate: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+        },
         orderBy: {
           createdAt: 'desc',
         },
@@ -91,12 +130,28 @@ describe('EmployeesService', () => {
 
   describe('findOne', () => {
     it('should return a single employee by id', async () => {
-      mockPrismaService.employee.findUnique.mockResolvedValue(mockEmployee as any);
+      mockPrismaService.employee.findUnique.mockResolvedValue(
+        mockEmployee as any,
+      );
 
       const result = await service.findOne(1);
 
       expect(mockPrismaService.employee.findUnique).toHaveBeenCalledWith({
         where: { id: 1 },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          department: true,
+          position: true,
+          salary: true,
+          hireDate: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
       expect(result).toEqual(mockEmployee);
     });
@@ -118,13 +173,67 @@ describe('EmployeesService', () => {
       };
 
       const updatedEmployee = { ...mockEmployee, ...updateEmployeeDto };
-      mockPrismaService.employee.update.mockResolvedValue(updatedEmployee as any);
+      mockPrismaService.employee.update.mockResolvedValue(
+        updatedEmployee as any,
+      );
 
       const result = await service.update(1, updateEmployeeDto);
 
       expect(mockPrismaService.employee.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: updateEmployeeDto,
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          department: true,
+          position: true,
+          salary: true,
+          hireDate: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+      expect(result).toEqual(updatedEmployee);
+    });
+
+    it('should hash password when updating employee with password', async () => {
+      const updateEmployeeDto: UpdateEmployeeDto = {
+        firstName: 'Jane',
+        password: 'newPassword123',
+      };
+
+      const updatedEmployee = { ...mockEmployee, ...updateEmployeeDto };
+      mockPrismaService.employee.update.mockResolvedValue(
+        updatedEmployee as any,
+      );
+
+      const result = await service.update(1, updateEmployeeDto);
+
+      expect(bcrypt.hash).toHaveBeenCalledWith('newPassword123', 10);
+      expect(mockPrismaService.employee.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: {
+          ...updateEmployeeDto,
+          password: 'hashedPassword123',
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          department: true,
+          position: true,
+          salary: true,
+          hireDate: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
       expect(result).toEqual(updatedEmployee);
     });
@@ -146,12 +255,28 @@ describe('EmployeesService', () => {
   describe('findActive', () => {
     it('should return only active employees', async () => {
       const activeEmployees = [mockEmployee];
-      mockPrismaService.employee.findMany.mockResolvedValue(activeEmployees as any);
+      mockPrismaService.employee.findMany.mockResolvedValue(
+        activeEmployees as any,
+      );
 
       const result = await service.findActive();
 
       expect(mockPrismaService.employee.findMany).toHaveBeenCalledWith({
         where: { isActive: true },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          department: true,
+          position: true,
+          salary: true,
+          hireDate: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+        },
         orderBy: {
           createdAt: 'desc',
         },
@@ -169,6 +294,20 @@ describe('EmployeesService', () => {
 
       expect(mockPrismaService.employee.findMany).toHaveBeenCalledWith({
         where: { department: 'IT' },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          department: true,
+          position: true,
+          salary: true,
+          hireDate: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+        },
         orderBy: {
           lastName: 'asc',
         },

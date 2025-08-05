@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,12 +19,16 @@ import {
   ApiParam,
   ApiQuery,
   ApiBody,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('employees')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(JwtAuthGuard)
 @Controller('employees')
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
@@ -39,9 +44,20 @@ export class EmployeesController {
 
   @Get()
   @ApiOperation({ summary: 'Get all employees with optional filtering' })
-  @ApiQuery({ name: 'active', required: false, description: 'Filter by active status (true/false)' })
-  @ApiQuery({ name: 'department', required: false, description: 'Filter by department name' })
-  @ApiResponse({ status: 200, description: 'List of employees retrieved successfully' })
+  @ApiQuery({
+    name: 'active',
+    required: false,
+    description: 'Filter by active status (true/false)',
+  })
+  @ApiQuery({
+    name: 'department',
+    required: false,
+    description: 'Filter by department name',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of employees retrieved successfully',
+  })
   async findAll(
     @Query('active') active?: string,
     @Query('department') department?: string,

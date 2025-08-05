@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 import { PrismaErrorMapperService } from './common/services/prisma-error-mapper.service';
@@ -7,6 +8,15 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Enable validation pipe globally
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
   // Register global exception filter for Prisma errors
   const errorMapper = new PrismaErrorMapperService();
   app.useGlobalFilters(new PrismaExceptionFilter(errorMapper));
@@ -14,11 +24,38 @@ async function bootstrap() {
   // Swagger configuration
   const config = new DocumentBuilder()
     .setTitle('Thmanyah CMS API')
-    .setDescription('Content Management System API for Thmanyah')
+    .setDescription(`
+      Content Management System API for Thmanyah with JWT Authentication
+      
+      ## Authentication
+      This API uses JWT Bearer token authentication. To access protected endpoints:
+      1. Login using /auth/login to get access and refresh tokens
+      2. Include the access token in Authorization header: "Bearer <token>"
+      3. Use /auth/refresh to get new access token when it expires
+      
+      ## Security
+      - Access tokens expire in 15 minutes
+      - Refresh tokens expire in 7 days
+      - All passwords are securely hashed with bcrypt
+      - Employee endpoints require valid authentication
+    `)
     .setVersion('1.0')
-    .addTag('employees', 'Employee management endpoints')
+    .addServer('http://localhost:3000', 'Local development server')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth',
+    )
+    .addTag('authentication', 'Authentication endpoints for login, refresh, and profile')
+    .addTag('employees', 'Employee management endpoints (requires authentication)')
     .build();
-  
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
