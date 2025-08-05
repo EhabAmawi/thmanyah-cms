@@ -29,13 +29,15 @@ describe('Authentication E2E', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    
+
     // Apply global pipes and filters
-    app.useGlobalPipes(new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }));
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
 
     const errorMapper = new PrismaErrorMapperService();
     app.useGlobalFilters(new PrismaExceptionFilter(errorMapper));
@@ -45,7 +47,7 @@ describe('Authentication E2E', () => {
   });
 
   beforeEach(async () => {
-    // Clean up test data specific to this test suite  
+    // Clean up test data specific to this test suite
     await prismaService.employee.deleteMany({
       where: {
         email: {
@@ -268,9 +270,7 @@ describe('Authentication E2E', () => {
     });
 
     it('should return 401 without access token', async () => {
-      await request(app.getHttpServer())
-        .post('/auth/profile')
-        .expect(401);
+      await request(app.getHttpServer()).post('/auth/profile').expect(401);
     });
 
     it('should return 401 with invalid access token', async () => {
@@ -313,9 +313,7 @@ describe('Authentication E2E', () => {
     });
 
     it('should deny access to protected endpoints without token', async () => {
-      await request(app.getHttpServer())
-        .get('/employees')
-        .expect(401);
+      await request(app.getHttpServer()).get('/employees').expect(401);
     });
 
     it('should deny access to protected endpoints with invalid token', async () => {

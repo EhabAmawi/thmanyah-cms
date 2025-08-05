@@ -87,12 +87,18 @@ describe('AuthService', () => {
       mockPrismaService.employee.findUnique.mockResolvedValue(mockEmployee);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
-      const result = await service.validateUser('john.doe@example.com', 'password123');
+      const result = await service.validateUser(
+        'john.doe@example.com',
+        'password123',
+      );
 
       expect(mockPrismaService.employee.findUnique).toHaveBeenCalledWith({
         where: { email: 'john.doe@example.com' },
       });
-      expect(bcrypt.compare).toHaveBeenCalledWith('password123', 'hashedPassword123');
+      expect(bcrypt.compare).toHaveBeenCalledWith(
+        'password123',
+        'hashedPassword123',
+      );
       expect(result).toEqual(mockEmployeeWithoutPassword);
       expect(result).not.toHaveProperty('password');
     });
@@ -100,7 +106,10 @@ describe('AuthService', () => {
     it('should return null when user is not found', async () => {
       mockPrismaService.employee.findUnique.mockResolvedValue(null);
 
-      const result = await service.validateUser('nonexistent@example.com', 'password123');
+      const result = await service.validateUser(
+        'nonexistent@example.com',
+        'password123',
+      );
 
       expect(result).toBeNull();
       expect(bcrypt.compare).not.toHaveBeenCalled();
@@ -110,7 +119,10 @@ describe('AuthService', () => {
       mockPrismaService.employee.findUnique.mockResolvedValue(mockEmployee);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      const result = await service.validateUser('john.doe@example.com', 'wrongpassword');
+      const result = await service.validateUser(
+        'john.doe@example.com',
+        'wrongpassword',
+      );
 
       expect(result).toBeNull();
     });
@@ -123,23 +135,32 @@ describe('AuthService', () => {
     };
 
     it('should return access and refresh tokens for valid credentials', async () => {
-      jest.spyOn(service, 'validateUser').mockResolvedValue(mockEmployeeWithoutPassword);
+      jest
+        .spyOn(service, 'validateUser')
+        .mockResolvedValue(mockEmployeeWithoutPassword);
       mockJwtService.sign
         .mockReturnValueOnce('access_token_123')
         .mockReturnValueOnce('refresh_token_123');
 
       const result = await service.login(loginDto);
 
-      expect(service.validateUser).toHaveBeenCalledWith(loginDto.email, loginDto.password);
+      expect(service.validateUser).toHaveBeenCalledWith(
+        loginDto.email,
+        loginDto.password,
+      );
       expect(mockJwtService.sign).toHaveBeenCalledTimes(2);
       expect(mockJwtService.sign).toHaveBeenNthCalledWith(1, {
         email: mockEmployeeWithoutPassword.email,
         sub: mockEmployeeWithoutPassword.id,
       });
-      expect(mockJwtService.sign).toHaveBeenNthCalledWith(2, {
-        email: mockEmployeeWithoutPassword.email,
-        sub: mockEmployeeWithoutPassword.id,
-      }, { expiresIn: '7d' });
+      expect(mockJwtService.sign).toHaveBeenNthCalledWith(
+        2,
+        {
+          email: mockEmployeeWithoutPassword.email,
+          sub: mockEmployeeWithoutPassword.id,
+        },
+        { expiresIn: '7d' },
+      );
 
       expect(result).toEqual({
         access_token: 'access_token_123',
@@ -177,7 +198,9 @@ describe('AuthService', () => {
     it('should return new access token for valid refresh token', async () => {
       const payload = { sub: 1, email: 'john.doe@example.com' };
       mockJwtService.verify.mockReturnValue(payload);
-      mockPrismaService.employee.findUnique.mockResolvedValue(mockEmployeeWithoutPassword);
+      mockPrismaService.employee.findUnique.mockResolvedValue(
+        mockEmployeeWithoutPassword,
+      );
       mockJwtService.sign.mockReturnValue('new_access_token');
 
       const result = await service.refreshToken(refreshToken);
@@ -229,7 +252,9 @@ describe('AuthService', () => {
 
   describe('findUserById', () => {
     it('should return user when found', async () => {
-      mockPrismaService.employee.findUnique.mockResolvedValue(mockEmployeeWithoutPassword);
+      mockPrismaService.employee.findUnique.mockResolvedValue(
+        mockEmployeeWithoutPassword,
+      );
 
       const result = await service.findUserById(1);
 

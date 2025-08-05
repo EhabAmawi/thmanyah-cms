@@ -61,13 +61,19 @@ describe('LocalStrategy', () => {
     it('should throw UnauthorizedException when user validation fails', async () => {
       mockAuthService.validateUser.mockResolvedValue(null);
 
-      await expect(strategy.validate(email, password)).rejects.toThrow(UnauthorizedException);
+      await expect(strategy.validate(email, password)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException when authService throws error', async () => {
-      mockAuthService.validateUser.mockRejectedValue(new Error('Database connection failed'));
+      mockAuthService.validateUser.mockRejectedValue(
+        new Error('Database connection failed'),
+      );
 
-      await expect(strategy.validate(email, password)).rejects.toThrow('Database connection failed');
+      await expect(strategy.validate(email, password)).rejects.toThrow(
+        'Database connection failed',
+      );
     });
 
     it('should handle different email formats correctly', async () => {
@@ -85,7 +91,10 @@ describe('LocalStrategy', () => {
 
         const result = await strategy.validate(testEmail, password);
 
-        expect(authService.validateUser).toHaveBeenCalledWith(testEmail, password);
+        expect(authService.validateUser).toHaveBeenCalledWith(
+          testEmail,
+          password,
+        );
         expect(result.email).toBe(testEmail);
       }
     });
@@ -93,9 +102,15 @@ describe('LocalStrategy', () => {
     it('should handle empty credentials appropriately', async () => {
       mockAuthService.validateUser.mockResolvedValue(null);
 
-      await expect(strategy.validate('', '')).rejects.toThrow(UnauthorizedException);
-      await expect(strategy.validate(email, '')).rejects.toThrow(UnauthorizedException);
-      await expect(strategy.validate('', password)).rejects.toThrow(UnauthorizedException);
+      await expect(strategy.validate('', '')).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(strategy.validate(email, '')).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(strategy.validate('', password)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should return complete user object when validation succeeds', async () => {
@@ -123,7 +138,10 @@ describe('LocalStrategy', () => {
         UnauthorizedException,
       );
 
-      expect(authService.validateUser).toHaveBeenCalledWith(upperCaseEmail, password);
+      expect(authService.validateUser).toHaveBeenCalledWith(
+        upperCaseEmail,
+        password,
+      );
     });
   });
 
