@@ -21,7 +21,7 @@ import {
   ApiBody,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { Language, MediaType } from '@prisma/client';
+import { Language, MediaType, Status } from '@prisma/client';
 import { ProgramsService } from './programs.service';
 import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
@@ -63,8 +63,21 @@ export class ProgramsController {
     description: 'Filter by media type',
   })
   @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: Status,
+    description: 'Filter by program status',
+  })
+  @ApiQuery({
+    name: 'categoryId',
+    required: false,
+    type: 'number',
+    description: 'Filter by category ID',
+  })
+  @ApiQuery({
     name: 'recent',
     required: false,
+    type: 'number',
     description: 'Get recent programs (specify limit)',
   })
   @ApiResponse({
@@ -75,6 +88,8 @@ export class ProgramsController {
   async findAll(
     @Query('language') language?: Language,
     @Query('mediaType') mediaType?: MediaType,
+    @Query('status') status?: Status,
+    @Query('categoryId') categoryId?: string,
     @Query('recent') recent?: string,
   ) {
     if (recent) {
@@ -84,6 +99,14 @@ export class ProgramsController {
       return this.programsService.findByLanguage(language);
     } else if (mediaType) {
       return this.programsService.findByMediaType(mediaType);
+    } else if (status) {
+      return this.programsService.findByStatus(status);
+    } else if (categoryId) {
+      const categoryIdInt = parseInt(categoryId, 10);
+      if (isNaN(categoryIdInt)) {
+        throw new HttpException('Invalid category ID', HttpStatus.BAD_REQUEST);
+      }
+      return this.programsService.findByCategory(categoryIdInt);
     }
     return this.programsService.findAll();
   }

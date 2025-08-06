@@ -4,11 +4,20 @@ import { ProgramsController } from './programs.controller';
 import { ProgramsService } from './programs.service';
 import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
-import { Language, MediaType } from '@prisma/client';
+import { Language, MediaType, Status } from '@prisma/client';
 
 describe('ProgramsController', () => {
   let controller: ProgramsController;
   let service: jest.Mocked<ProgramsService>;
+
+  const mockCategory = {
+    id: 1,
+    name: 'Programming',
+    description: 'Programming courses',
+    isActive: true,
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+  };
 
   const mockProgram = {
     id: 1,
@@ -19,6 +28,9 @@ describe('ProgramsController', () => {
     releaseDate: new Date('2024-01-01'),
     mediaUrl: 'https://example.com/media/program1.mp4',
     mediaType: MediaType.VIDEO,
+    status: Status.DRAFT,
+    categoryId: 1,
+    category: mockCategory,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   };
@@ -31,6 +43,8 @@ describe('ProgramsController', () => {
     remove: jest.fn(),
     findByLanguage: jest.fn(),
     findByMediaType: jest.fn(),
+    findByStatus: jest.fn(),
+    findByCategory: jest.fn(),
     findRecent: jest.fn(),
   };
 
@@ -61,6 +75,7 @@ describe('ProgramsController', () => {
         durationSec: 3600,
         releaseDate: '2024-01-01T00:00:00.000Z',
         mediaUrl: 'https://example.com/media/program1.mp4',
+        categoryId: 1,
       };
 
       service.create.mockResolvedValue(mockProgram as any);
@@ -87,7 +102,13 @@ describe('ProgramsController', () => {
       const recentPrograms = [mockProgram];
       service.findRecent.mockResolvedValue(recentPrograms as any);
 
-      const result = await controller.findAll(undefined, undefined, '5');
+      const result = await controller.findAll(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        '5',
+      );
 
       expect(service.findRecent).toHaveBeenCalledWith(5);
       expect(result).toEqual(recentPrograms);
@@ -97,7 +118,13 @@ describe('ProgramsController', () => {
       const recentPrograms = [mockProgram];
       service.findRecent.mockResolvedValue(recentPrograms as any);
 
-      const result = await controller.findAll(undefined, undefined, 'invalid');
+      const result = await controller.findAll(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        'invalid',
+      );
 
       expect(service.findRecent).toHaveBeenCalledWith(10);
       expect(result).toEqual(recentPrograms);
@@ -123,27 +150,110 @@ describe('ProgramsController', () => {
       expect(result).toEqual(videoPrograms);
     });
 
+    it('should return programs by status when status param provided', async () => {
+      const publishedPrograms = [mockProgram];
+      service.findByStatus.mockResolvedValue(publishedPrograms as any);
+
+      const result = await controller.findAll(
+        undefined,
+        undefined,
+        Status.PUBLISHED,
+      );
+
+      expect(service.findByStatus).toHaveBeenCalledWith(Status.PUBLISHED);
+      expect(result).toEqual(publishedPrograms);
+    });
+
+    it('should return programs by category when categoryId param provided', async () => {
+      const categoryPrograms = [mockProgram];
+      service.findByCategory.mockResolvedValue(categoryPrograms as any);
+
+      const result = await controller.findAll(
+        undefined,
+        undefined,
+        undefined,
+        '1',
+      );
+
+      expect(service.findByCategory).toHaveBeenCalledWith(1);
+      expect(result).toEqual(categoryPrograms);
+    });
+
+    it('should throw error when categoryId param is invalid', async () => {
+      await expect(
+        controller.findAll(undefined, undefined, undefined, 'invalid'),
+      ).rejects.toThrow('Invalid category ID');
+    });
+
     it('should prioritize recent over other filters', async () => {
       const recentPrograms = [mockProgram];
       service.findRecent.mockResolvedValue(recentPrograms as any);
 
-      const result = await controller.findAll(Language.ENGLISH, MediaType.VIDEO, '3');
+      const result = await controller.findAll(
+        Language.ENGLISH,
+        MediaType.VIDEO,
+        Status.PUBLISHED,
+        '1',
+        '3',
+      );
 
       expect(service.findRecent).toHaveBeenCalledWith(3);
       expect(service.findByLanguage).not.toHaveBeenCalled();
       expect(service.findByMediaType).not.toHaveBeenCalled();
+      expect(service.findByStatus).not.toHaveBeenCalled();
+      expect(service.findByCategory).not.toHaveBeenCalled();
       expect(result).toEqual(recentPrograms);
     });
 
-    it('should prioritize language over mediaType when both provided', async () => {
+    it('should prioritize language over other filters when provided', async () => {
       const englishPrograms = [mockProgram];
       service.findByLanguage.mockResolvedValue(englishPrograms as any);
 
-      const result = await controller.findAll(Language.ENGLISH, MediaType.VIDEO);
+      const result = await controller.findAll(
+        Language.ENGLISH,
+        MediaType.VIDEO,
+        Status.PUBLISHED,
+        '1',
+      );
 
       expect(service.findByLanguage).toHaveBeenCalledWith(Language.ENGLISH);
       expect(service.findByMediaType).not.toHaveBeenCalled();
+      expect(service.findByStatus).not.toHaveBeenCalled();
+      expect(service.findByCategory).not.toHaveBeenCalled();
       expect(result).toEqual(englishPrograms);
+    });
+
+    it('should prioritize mediaType over status and category when language not provided', async () => {
+      const videoPrograms = [mockProgram];
+      service.findByMediaType.mockResolvedValue(videoPrograms as any);
+
+      const result = await controller.findAll(
+        undefined,
+        MediaType.VIDEO,
+        Status.PUBLISHED,
+        '1',
+      );
+
+      expect(service.findByMediaType).toHaveBeenCalledWith(MediaType.VIDEO);
+      expect(service.findByStatus).not.toHaveBeenCalled();
+      expect(service.findByCategory).not.toHaveBeenCalled();
+      expect(result).toEqual(videoPrograms);
+    });
+
+    it('should prioritize status over category when language and mediaType not provided', async () => {
+      const publishedPrograms = [mockProgram];
+      service.findByStatus.mockResolvedValue(publishedPrograms as any);
+
+      const result = await controller.findAll(
+        undefined,
+        undefined,
+        Status.PUBLISHED,
+        '1',
+      );
+
+      expect(service.findByStatus).toHaveBeenCalledWith(Status.PUBLISHED);
+      expect(service.findByCategory).not.toHaveBeenCalled();
+      expect(result).toEqual(publishedPrograms);
     });
   });
 

@@ -3,10 +3,19 @@ import { ProgramsService } from './programs.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
-import { Language, MediaType } from '@prisma/client';
+import { Language, MediaType, Status } from '@prisma/client';
 
 describe('ProgramsService', () => {
   let service: ProgramsService;
+
+  const mockCategory = {
+    id: 1,
+    name: 'Programming',
+    description: 'Programming courses',
+    isActive: true,
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+  };
 
   const mockProgram = {
     id: 1,
@@ -17,6 +26,9 @@ describe('ProgramsService', () => {
     releaseDate: new Date('2024-01-01'),
     mediaUrl: 'https://example.com/media/program1.mp4',
     mediaType: MediaType.VIDEO,
+    status: Status.DRAFT,
+    categoryId: 1,
+    category: mockCategory,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   };
@@ -61,6 +73,7 @@ describe('ProgramsService', () => {
         durationSec: 3600,
         releaseDate: '2024-01-01T00:00:00.000Z',
         mediaUrl: 'https://example.com/media/program1.mp4',
+        categoryId: 1,
       };
 
       mockPrismaService.program.create.mockResolvedValue(mockProgram);
@@ -73,12 +86,16 @@ describe('ProgramsService', () => {
           releaseDate: new Date(createProgramDto.releaseDate),
           language: Language.ENGLISH,
           mediaType: MediaType.VIDEO,
+          status: Status.DRAFT,
+        },
+        include: {
+          category: true,
         },
       });
       expect(result).toEqual(mockProgram);
     });
 
-    it('should create a program with specified language and mediaType', async () => {
+    it('should create a program with specified language, mediaType, and status', async () => {
       const createProgramDto: CreateProgramDto = {
         name: 'Arabic Program',
         description: 'Arabic content',
@@ -87,9 +104,16 @@ describe('ProgramsService', () => {
         releaseDate: '2024-01-01T00:00:00.000Z',
         mediaUrl: 'https://example.com/media/audio1.mp3',
         mediaType: MediaType.AUDIO,
+        status: Status.PUBLISHED,
+        categoryId: 1,
       };
 
-      const arabicProgram = { ...mockProgram, language: Language.ARABIC, mediaType: MediaType.AUDIO };
+      const arabicProgram = {
+        ...mockProgram,
+        language: Language.ARABIC,
+        mediaType: MediaType.AUDIO,
+        status: Status.PUBLISHED,
+      };
       mockPrismaService.program.create.mockResolvedValue(arabicProgram);
 
       const result = await service.create(createProgramDto);
@@ -100,6 +124,10 @@ describe('ProgramsService', () => {
           releaseDate: new Date(createProgramDto.releaseDate),
           language: Language.ARABIC,
           mediaType: MediaType.AUDIO,
+          status: Status.PUBLISHED,
+        },
+        include: {
+          category: true,
         },
       });
       expect(result).toEqual(arabicProgram);
@@ -114,6 +142,9 @@ describe('ProgramsService', () => {
       const result = await service.findAll();
 
       expect(mockPrismaService.program.findMany).toHaveBeenCalledWith({
+        include: {
+          category: true,
+        },
         orderBy: {
           createdAt: 'desc',
         },
@@ -130,6 +161,9 @@ describe('ProgramsService', () => {
 
       expect(mockPrismaService.program.findUnique).toHaveBeenCalledWith({
         where: { id: 1 },
+        include: {
+          category: true,
+        },
       });
       expect(result).toEqual(mockProgram);
     });
@@ -141,6 +175,9 @@ describe('ProgramsService', () => {
 
       expect(mockPrismaService.program.findUnique).toHaveBeenCalledWith({
         where: { id: 999 },
+        include: {
+          category: true,
+        },
       });
       expect(result).toBeNull();
     });
@@ -161,6 +198,9 @@ describe('ProgramsService', () => {
       expect(mockPrismaService.program.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: updateProgramDto,
+        include: {
+          category: true,
+        },
       });
       expect(result).toEqual(updatedProgram);
     });
@@ -170,7 +210,10 @@ describe('ProgramsService', () => {
         releaseDate: '2024-02-01T00:00:00.000Z',
       };
 
-      const updatedProgram = { ...mockProgram, releaseDate: new Date('2024-02-01') };
+      const updatedProgram = {
+        ...mockProgram,
+        releaseDate: new Date('2024-02-01'),
+      };
       mockPrismaService.program.update.mockResolvedValue(updatedProgram);
 
       const result = await service.update(1, updateProgramDto);
@@ -179,6 +222,9 @@ describe('ProgramsService', () => {
         where: { id: 1 },
         data: {
           releaseDate: new Date(updateProgramDto.releaseDate),
+        },
+        include: {
+          category: true,
         },
       });
       expect(result).toEqual(updatedProgram);
@@ -207,6 +253,9 @@ describe('ProgramsService', () => {
 
       expect(mockPrismaService.program.findMany).toHaveBeenCalledWith({
         where: { language: Language.ENGLISH },
+        include: {
+          category: true,
+        },
         orderBy: {
           releaseDate: 'desc',
         },
@@ -224,6 +273,49 @@ describe('ProgramsService', () => {
 
       expect(mockPrismaService.program.findMany).toHaveBeenCalledWith({
         where: { mediaType: MediaType.VIDEO },
+        include: {
+          category: true,
+        },
+        orderBy: {
+          releaseDate: 'desc',
+        },
+      });
+      expect(result).toEqual(programs);
+    });
+  });
+
+  describe('findByStatus', () => {
+    it('should return programs filtered by status', async () => {
+      const programs = [mockProgram];
+      mockPrismaService.program.findMany.mockResolvedValue(programs);
+
+      const result = await service.findByStatus(Status.PUBLISHED);
+
+      expect(mockPrismaService.program.findMany).toHaveBeenCalledWith({
+        where: { status: Status.PUBLISHED },
+        include: {
+          category: true,
+        },
+        orderBy: {
+          releaseDate: 'desc',
+        },
+      });
+      expect(result).toEqual(programs);
+    });
+  });
+
+  describe('findByCategory', () => {
+    it('should return programs filtered by category', async () => {
+      const programs = [mockProgram];
+      mockPrismaService.program.findMany.mockResolvedValue(programs);
+
+      const result = await service.findByCategory(1);
+
+      expect(mockPrismaService.program.findMany).toHaveBeenCalledWith({
+        where: { categoryId: 1 },
+        include: {
+          category: true,
+        },
         orderBy: {
           releaseDate: 'desc',
         },
@@ -241,6 +333,9 @@ describe('ProgramsService', () => {
 
       expect(mockPrismaService.program.findMany).toHaveBeenCalledWith({
         take: 10,
+        include: {
+          category: true,
+        },
         orderBy: {
           releaseDate: 'desc',
         },
@@ -256,6 +351,9 @@ describe('ProgramsService', () => {
 
       expect(mockPrismaService.program.findMany).toHaveBeenCalledWith({
         take: 5,
+        include: {
+          category: true,
+        },
         orderBy: {
           releaseDate: 'desc',
         },

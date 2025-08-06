@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
-import { Language, MediaType } from '@prisma/client';
+import { Language, MediaType, Status } from '@prisma/client';
 
 @Injectable()
 export class ProgramsService {
@@ -15,12 +15,19 @@ export class ProgramsService {
         releaseDate: new Date(createProgramDto.releaseDate),
         language: createProgramDto.language || Language.ENGLISH,
         mediaType: createProgramDto.mediaType || MediaType.VIDEO,
+        status: createProgramDto.status || Status.DRAFT,
+      },
+      include: {
+        category: true,
       },
     });
   }
 
   async findAll() {
     return this.prisma.program.findMany({
+      include: {
+        category: true,
+      },
       orderBy: {
         createdAt: 'desc',
       },
@@ -30,6 +37,9 @@ export class ProgramsService {
   async findOne(id: number) {
     return this.prisma.program.findUnique({
       where: { id },
+      include: {
+        category: true,
+      },
     });
   }
 
@@ -43,6 +53,9 @@ export class ProgramsService {
     return this.prisma.program.update({
       where: { id },
       data: updateData,
+      include: {
+        category: true,
+      },
     });
   }
 
@@ -55,6 +68,9 @@ export class ProgramsService {
   async findByLanguage(language: Language) {
     return this.prisma.program.findMany({
       where: { language },
+      include: {
+        category: true,
+      },
       orderBy: {
         releaseDate: 'desc',
       },
@@ -64,6 +80,33 @@ export class ProgramsService {
   async findByMediaType(mediaType: MediaType) {
     return this.prisma.program.findMany({
       where: { mediaType },
+      include: {
+        category: true,
+      },
+      orderBy: {
+        releaseDate: 'desc',
+      },
+    });
+  }
+
+  async findByStatus(status: Status) {
+    return this.prisma.program.findMany({
+      where: { status },
+      include: {
+        category: true,
+      },
+      orderBy: {
+        releaseDate: 'desc',
+      },
+    });
+  }
+
+  async findByCategory(categoryId: number) {
+    return this.prisma.program.findMany({
+      where: { categoryId },
+      include: {
+        category: true,
+      },
       orderBy: {
         releaseDate: 'desc',
       },
@@ -73,6 +116,9 @@ export class ProgramsService {
   async findRecent(limit: number = 10) {
     return this.prisma.program.findMany({
       take: limit,
+      include: {
+        category: true,
+      },
       orderBy: {
         releaseDate: 'desc',
       },

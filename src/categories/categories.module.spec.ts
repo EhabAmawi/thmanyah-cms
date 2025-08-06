@@ -23,7 +23,8 @@ describe('CategoriesModule', () => {
     });
 
     it('should provide CategoriesService', () => {
-      const categoriesService = module.get<CategoriesService>(CategoriesService);
+      const categoriesService =
+        module.get<CategoriesService>(CategoriesService);
       expect(categoriesService).toBeDefined();
       expect(categoriesService).toBeInstanceOf(CategoriesService);
     });
@@ -36,14 +37,16 @@ describe('CategoriesModule', () => {
     });
 
     it('should export CategoriesService', () => {
-      const categoriesService = module.get<CategoriesService>(CategoriesService);
+      const categoriesService =
+        module.get<CategoriesService>(CategoriesService);
       expect(categoriesService).toBeDefined();
     });
   });
 
   describe('dependency injection', () => {
     it('should properly inject dependencies', () => {
-      const categoriesService = module.get<CategoriesService>(CategoriesService);
+      const categoriesService =
+        module.get<CategoriesService>(CategoriesService);
       const categoriesController =
         module.get<CategoriesController>(CategoriesController);
 

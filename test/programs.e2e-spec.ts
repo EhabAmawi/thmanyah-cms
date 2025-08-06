@@ -6,12 +6,13 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { PrismaExceptionFilter } from '../src/common/filters/prisma-exception.filter';
 import { PrismaErrorMapperService } from '../src/common/services/prisma-error-mapper.service';
-import { Language, MediaType } from '@prisma/client';
+import { Language, MediaType, Status } from '@prisma/client';
 
 describe('ProgramsController (e2e)', () => {
   let app: INestApplication;
   let prismaService: PrismaService;
   let accessToken: string;
+  let testCategory: any;
 
   const timestamp = Date.now();
   const testEmployee = {
@@ -26,7 +27,7 @@ describe('ProgramsController (e2e)', () => {
     isActive: true,
   };
 
-  const testProgram = {
+  const getTestProgram = () => ({
     name: `Test Program ${timestamp}`,
     description: 'A test program for e2e testing',
     language: Language.ENGLISH,
@@ -34,9 +35,11 @@ describe('ProgramsController (e2e)', () => {
     releaseDate: '2024-01-01T00:00:00.000Z',
     mediaUrl: 'https://example.com/media/test-program.mp4',
     mediaType: MediaType.VIDEO,
-  };
+    status: Status.DRAFT,
+    categoryId: testCategory?.id || 1,
+  });
 
-  const secondTestProgram = {
+  const getSecondTestProgram = () => ({
     name: `Second Test Program ${timestamp}`,
     description: 'Another test program',
     language: Language.ARABIC,
@@ -44,7 +47,9 @@ describe('ProgramsController (e2e)', () => {
     releaseDate: '2024-02-01T00:00:00.000Z',
     mediaUrl: 'https://example.com/media/test-audio.mp3',
     mediaType: MediaType.AUDIO,
-  };
+    status: Status.PUBLISHED,
+    categoryId: testCategory?.id || 1,
+  });
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -79,11 +84,28 @@ describe('ProgramsController (e2e)', () => {
       },
     });
 
+    await prismaService.category.deleteMany({
+      where: {
+        name: {
+          contains: `Test Category ${timestamp}`,
+        },
+      },
+    });
+
     await prismaService.employee.deleteMany({
       where: {
         email: {
           contains: `prog.${timestamp}@example.com`,
         },
+      },
+    });
+
+    // Create a test category
+    testCategory = await prismaService.category.create({
+      data: {
+        name: `Test Category ${timestamp}`,
+        description: 'A test category for e2e testing',
+        isActive: true,
       },
     });
 
@@ -127,6 +149,14 @@ describe('ProgramsController (e2e)', () => {
       },
     });
 
+    await prismaService.category.deleteMany({
+      where: {
+        name: {
+          contains: `Test Category ${timestamp}`,
+        },
+      },
+    });
+
     await prismaService.employee.deleteMany({
       where: {
         email: {
@@ -142,6 +172,7 @@ describe('ProgramsController (e2e)', () => {
 
   describe('POST /programs', () => {
     it('should create a new program', async () => {
+      const testProgram = getTestProgram();
       const response = await request(app.getHttpServer())
         .post('/programs')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -155,8 +186,12 @@ describe('ProgramsController (e2e)', () => {
         durationSec: testProgram.durationSec,
         mediaUrl: testProgram.mediaUrl,
         mediaType: testProgram.mediaType,
+        status: testProgram.status,
+        categoryId: testProgram.categoryId,
       });
       expect(response.body.id).toBeDefined();
+      expect(response.body.category).toBeDefined();
+      expect(response.body.category.id).toBe(testCategory.id);
       expect(response.body.createdAt).toBeDefined();
       expect(response.body.updatedAt).toBeDefined();
     });
@@ -167,6 +202,7 @@ describe('ProgramsController (e2e)', () => {
         durationSec: 600,
         releaseDate: '2024-01-01T00:00:00.000Z',
         mediaUrl: 'https://example.com/media/minimal.mp4',
+        categoryId: testCategory.id,
       };
 
       const response = await request(app.getHttpServer())
@@ -179,12 +215,16 @@ describe('ProgramsController (e2e)', () => {
         name: minimalProgram.name,
         language: Language.ENGLISH, // default
         mediaType: MediaType.VIDEO, // default
+        status: Status.DRAFT, // default
         durationSec: minimalProgram.durationSec,
         mediaUrl: minimalProgram.mediaUrl,
+        categoryId: testCategory.id,
       });
+      expect(response.body.category).toBeDefined();
     });
 
     it('should return 409 for duplicate program name', async () => {
+      const testProgram = getTestProgram();
       // Create first program
       await request(app.getHttpServer())
         .post('/programs')
@@ -216,6 +256,7 @@ describe('ProgramsController (e2e)', () => {
     });
 
     it('should return 401 without authentication', async () => {
+      const testProgram = getTestProgram();
       await request(app.getHttpServer())
         .post('/programs')
         .send(testProgram)
@@ -229,6 +270,9 @@ describe('ProgramsController (e2e)', () => {
 
     beforeEach(async () => {
       // Create test programs
+      const testProgram = getTestProgram();
+      const secondTestProgram = getSecondTestProgram();
+
       const response1 = await request(app.getHttpServer())
         .post('/programs')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -250,10 +294,16 @@ describe('ProgramsController (e2e)', () => {
 
       expect(response.body).toBeInstanceOf(Array);
       expect(response.body.length).toBeGreaterThanOrEqual(2);
-      
+
       const programNames = response.body.map((p: any) => p.name);
-      expect(programNames).toContain(testProgram.name);
-      expect(programNames).toContain(secondTestProgram.name);
+      expect(programNames).toContain(createdProgram.name);
+      expect(programNames).toContain(createdProgram2.name);
+
+      // Verify category relation is included
+      response.body.forEach((program: any) => {
+        expect(program.category).toBeDefined();
+        expect(program.category.id).toBe(testCategory.id);
+      });
     });
 
     it('should filter programs by language', async () => {
@@ -280,6 +330,38 @@ describe('ProgramsController (e2e)', () => {
       });
     });
 
+    it('should filter programs by status', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/programs?status=PUBLISHED')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK);
+
+      expect(response.body).toBeInstanceOf(Array);
+      response.body.forEach((program: any) => {
+        expect(program.status).toBe(Status.PUBLISHED);
+      });
+    });
+
+    it('should filter programs by categoryId', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/programs?categoryId=${testCategory.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK);
+
+      expect(response.body).toBeInstanceOf(Array);
+      response.body.forEach((program: any) => {
+        expect(program.categoryId).toBe(testCategory.id);
+        expect(program.category.id).toBe(testCategory.id);
+      });
+    });
+
+    it('should return 400 for invalid categoryId', async () => {
+      await request(app.getHttpServer())
+        .get('/programs?categoryId=invalid')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.BAD_REQUEST);
+    });
+
     it('should return recent programs with limit', async () => {
       const response = await request(app.getHttpServer())
         .get('/programs?recent=1')
@@ -301,6 +383,7 @@ describe('ProgramsController (e2e)', () => {
     let createdProgram: any;
 
     beforeEach(async () => {
+      const testProgram = getTestProgram();
       const response = await request(app.getHttpServer())
         .post('/programs')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -316,10 +399,14 @@ describe('ProgramsController (e2e)', () => {
 
       expect(response.body).toMatchObject({
         id: createdProgram.id,
-        name: testProgram.name,
-        description: testProgram.description,
-        language: testProgram.language,
+        name: createdProgram.name,
+        description: createdProgram.description,
+        language: createdProgram.language,
+        status: createdProgram.status,
+        categoryId: createdProgram.categoryId,
       });
+      expect(response.body.category).toBeDefined();
+      expect(response.body.category.id).toBe(testCategory.id);
     });
 
     it('should return 404 for non-existent program', async () => {
@@ -340,6 +427,7 @@ describe('ProgramsController (e2e)', () => {
     let createdProgram: any;
 
     beforeEach(async () => {
+      const testProgram = getTestProgram();
       const response = await request(app.getHttpServer())
         .post('/programs')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -352,6 +440,7 @@ describe('ProgramsController (e2e)', () => {
         name: `Updated Program ${timestamp}`,
         description: 'Updated description',
         durationSec: 7200,
+        status: Status.PUBLISHED,
       };
 
       const response = await request(app.getHttpServer())
@@ -365,7 +454,10 @@ describe('ProgramsController (e2e)', () => {
         name: updateData.name,
         description: updateData.description,
         durationSec: updateData.durationSec,
+        status: updateData.status,
       });
+      expect(response.body.category).toBeDefined();
+      expect(response.body.category.id).toBe(testCategory.id);
     });
 
     it('should return 404 for non-existent program', async () => {
@@ -388,6 +480,7 @@ describe('ProgramsController (e2e)', () => {
     let createdProgram: any;
 
     beforeEach(async () => {
+      const testProgram = getTestProgram();
       const response = await request(app.getHttpServer())
         .post('/programs')
         .set('Authorization', `Bearer ${accessToken}`)

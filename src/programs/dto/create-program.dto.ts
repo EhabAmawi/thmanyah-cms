@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Language, MediaType } from '@prisma/client';
+import { Language, MediaType, Status } from '@prisma/client';
 import {
   IsString,
   IsOptional,
@@ -74,4 +74,23 @@ export class CreateProgramDto {
   @IsEnum(MediaType)
   @IsOptional()
   mediaType?: MediaType;
+
+  @ApiProperty({
+    enum: Status,
+    example: Status.DRAFT,
+    description: 'The status of the program',
+    required: false,
+    default: Status.DRAFT,
+  })
+  @IsEnum(Status)
+  @IsOptional()
+  status?: Status;
+
+  @ApiProperty({
+    example: 1,
+    description: 'The ID of the category this program belongs to',
+  })
+  @IsInt()
+  @Min(1)
+  categoryId: number;
 }
