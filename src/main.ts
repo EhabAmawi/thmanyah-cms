@@ -28,17 +28,29 @@ async function bootstrap() {
       `
       Content Management System API for Thmanyah with JWT Authentication
       
+      ## Features
+      - Employee Management: Complete CRUD operations for staff management
+      - Category Management: Organize content into categories
+      - Program Management: Media content with multi-language support
+      - Content Import: Import videos from external sources (YouTube, with extensible adapter pattern)
+      
       ## Authentication
       This API uses JWT Bearer token authentication. To access protected endpoints:
       1. Login using /auth/login to get access and refresh tokens
       2. Include the access token in Authorization header: "Bearer <token>"
       3. Use /auth/refresh to get new access token when it expires
       
+      ## Import System
+      - Import videos from YouTube by URL or channel
+      - Automatic duplicate detection using external ID + source type
+      - Extensible adapter pattern for adding new sources (Vimeo, RSS, etc.)
+      - Support for single video import and bulk channel import
+      
       ## Security
       - Access tokens expire in 15 minutes
       - Refresh tokens expire in 7 days
       - All passwords are securely hashed with bcrypt
-      - Employee endpoints require valid authentication
+      - All endpoints require valid authentication
     `,
     )
     .setVersion('1.0')
@@ -61,6 +73,18 @@ async function bootstrap() {
     .addTag(
       'employees',
       'Employee management endpoints (requires authentication)',
+    )
+    .addTag(
+      'categories',
+      'Category management endpoints (requires authentication)',
+    )
+    .addTag(
+      'programs',
+      'Program management endpoints (requires authentication)',
+    )
+    .addTag(
+      'import',
+      'Content import endpoints from external sources like YouTube (requires authentication)',
     )
     .build();
 

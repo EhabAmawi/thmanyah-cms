@@ -44,8 +44,8 @@ model Category {
 }
 
 model Program {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
   description String?
   language    Language  @default(ENGLISH)
   durationSec Int       @map("duration_sec")
@@ -55,9 +55,13 @@ model Program {
   status      Status    @default(DRAFT)
   categoryId  Int       @map("category_id")
   category    Category  @relation(fields: [categoryId], references: [id])
+  sourceType  SourceType @default(MANUAL) @map("source_type")
+  sourceUrl   String?    @map("source_url")
+  externalId  String?    @map("external_id")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
+  @@unique([externalId, sourceType], name: "external_source_unique")
   @@map("programs")
 }
 
@@ -75,4 +79,12 @@ enum Status {
   DRAFT
   PUBLISHED
   ARCHIVED
+}
+
+enum SourceType {
+  MANUAL
+  YOUTUBE
+  VIMEO
+  RSS
+  API
 }
