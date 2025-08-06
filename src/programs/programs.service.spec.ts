@@ -29,6 +29,9 @@ describe('ProgramsService', () => {
     status: Status.DRAFT,
     categoryId: 1,
     category: mockCategory,
+    sourceType: 'MANUAL',
+    sourceUrl: null,
+    externalId: null,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   };
@@ -87,6 +90,9 @@ describe('ProgramsService', () => {
           language: Language.ENGLISH,
           mediaType: MediaType.VIDEO,
           status: Status.DRAFT,
+          sourceType: 'MANUAL',
+          sourceUrl: null,
+          externalId: null,
         },
         include: {
           category: true,
@@ -125,6 +131,9 @@ describe('ProgramsService', () => {
           language: Language.ARABIC,
           mediaType: MediaType.AUDIO,
           status: Status.PUBLISHED,
+          sourceType: 'MANUAL',
+          sourceUrl: null,
+          externalId: null,
         },
         include: {
           category: true,
@@ -221,7 +230,7 @@ describe('ProgramsService', () => {
       expect(mockPrismaService.program.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: {
-          releaseDate: new Date(updateProgramDto.releaseDate),
+          releaseDate: new Date(updateProgramDto.releaseDate!),
         },
         include: {
           category: true,

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
-import { Language, MediaType, Status } from '@prisma/client';
+import { Language, MediaType, Status, SourceType } from '@prisma/client';
 
 @Injectable()
 export class ProgramsService {
@@ -16,6 +16,9 @@ export class ProgramsService {
         language: createProgramDto.language || Language.ENGLISH,
         mediaType: createProgramDto.mediaType || MediaType.VIDEO,
         status: createProgramDto.status || Status.DRAFT,
+        sourceType: SourceType.MANUAL,
+        sourceUrl: null,
+        externalId: null,
       },
       include: {
         category: true,

@@ -1,12 +1,11 @@
 import {
   Injectable,
   BadRequestException,
-  InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdapterFactory } from './adapters/adapter.factory';
-import { ImportedContent, ImportResult } from './adapters/base.adapter';
+import { ImportedContent } from './adapters/base.adapter';
 import {
   ImportVideoDto,
   ImportChannelDto,
@@ -218,6 +217,7 @@ export class ImportService {
           sourceType: content.sourceType,
           sourceUrl: content.sourceUrl,
           externalId: content.externalId,
+          categoryId: categoryId ? parseInt(categoryId, 10) : 1, // Default to category ID 1 if not provided
         },
       });
 

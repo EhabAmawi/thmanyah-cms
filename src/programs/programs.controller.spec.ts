@@ -31,6 +31,9 @@ describe('ProgramsController', () => {
     status: Status.DRAFT,
     categoryId: 1,
     category: mockCategory,
+    sourceType: 'MANUAL',
+    sourceUrl: null,
+    externalId: null,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   };
