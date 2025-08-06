@@ -29,7 +29,8 @@ describe('ProgramsModule', () => {
     });
 
     it('should provide ProgramsController', () => {
-      const programsController = module.get<ProgramsController>(ProgramsController);
+      const programsController =
+        module.get<ProgramsController>(ProgramsController);
       expect(programsController).toBeDefined();
       expect(programsController).toBeInstanceOf(ProgramsController);
     });
@@ -48,7 +49,8 @@ describe('ProgramsModule', () => {
     });
 
     it('should inject ProgramsService into ProgramsController', async () => {
-      const programsController = module.get<ProgramsController>(ProgramsController);
+      const programsController =
+        module.get<ProgramsController>(ProgramsController);
       expect(programsController).toBeDefined();
       // Test that the controller can be instantiated with its dependencies
       expect(programsController.create).toBeDefined();

@@ -127,7 +127,11 @@ describe('ProgramsController', () => {
       const recentPrograms = [mockProgram];
       service.findRecent.mockResolvedValue(recentPrograms as any);
 
-      const result = await controller.findAll(Language.ENGLISH, MediaType.VIDEO, '3');
+      const result = await controller.findAll(
+        Language.ENGLISH,
+        MediaType.VIDEO,
+        '3',
+      );
 
       expect(service.findRecent).toHaveBeenCalledWith(3);
       expect(service.findByLanguage).not.toHaveBeenCalled();
@@ -139,7 +143,10 @@ describe('ProgramsController', () => {
       const englishPrograms = [mockProgram];
       service.findByLanguage.mockResolvedValue(englishPrograms as any);
 
-      const result = await controller.findAll(Language.ENGLISH, MediaType.VIDEO);
+      const result = await controller.findAll(
+        Language.ENGLISH,
+        MediaType.VIDEO,
+      );
 
       expect(service.findByLanguage).toHaveBeenCalledWith(Language.ENGLISH);
       expect(service.findByMediaType).not.toHaveBeenCalled();

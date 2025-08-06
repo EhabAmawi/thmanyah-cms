@@ -89,7 +89,11 @@ describe('ProgramsService', () => {
         mediaType: MediaType.AUDIO,
       };
 
-      const arabicProgram = { ...mockProgram, language: Language.ARABIC, mediaType: MediaType.AUDIO };
+      const arabicProgram = {
+        ...mockProgram,
+        language: Language.ARABIC,
+        mediaType: MediaType.AUDIO,
+      };
       mockPrismaService.program.create.mockResolvedValue(arabicProgram);
 
       const result = await service.create(createProgramDto);
@@ -170,7 +174,10 @@ describe('ProgramsService', () => {
         releaseDate: '2024-02-01T00:00:00.000Z',
       };
 
-      const updatedProgram = { ...mockProgram, releaseDate: new Date('2024-02-01') };
+      const updatedProgram = {
+        ...mockProgram,
+        releaseDate: new Date('2024-02-01'),
+      };
       mockPrismaService.program.update.mockResolvedValue(updatedProgram);
 
       const result = await service.update(1, updateProgramDto);

@@ -43,17 +43,21 @@ model Category {
 }
 
 model Program {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
   description String?
-  language    Language  @default(ENGLISH)
-  durationSec Int       @map("duration_sec")
-  releaseDate DateTime  @map("release_date")
-  mediaUrl    String    @map("media_url")
-  mediaType   MediaType @default(VIDEO) @map("media_type")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  language    Language   @default(ENGLISH)
+  durationSec Int        @map("duration_sec")
+  releaseDate DateTime   @map("release_date")
+  mediaUrl    String     @map("media_url")
+  mediaType   MediaType  @default(VIDEO) @map("media_type")
+  sourceType  SourceType @default(MANUAL) @map("source_type")
+  sourceUrl   String?    @map("source_url")
+  externalId  String?    @map("external_id")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
 
+  @@unique([externalId, sourceType], name: "external_source_unique")
   @@map("programs")
 }
 
@@ -65,4 +69,12 @@ enum MediaType {
 enum Language {
   ENGLISH
   ARABIC
+}
+
+enum SourceType {
+  MANUAL
+  YOUTUBE
+  VIMEO
+  RSS
+  API
 }

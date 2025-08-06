@@ -250,7 +250,7 @@ describe('ProgramsController (e2e)', () => {
 
       expect(response.body).toBeInstanceOf(Array);
       expect(response.body.length).toBeGreaterThanOrEqual(2);
-      
+
       const programNames = response.body.map((p: any) => p.name);
       expect(programNames).toContain(testProgram.name);
       expect(programNames).toContain(secondTestProgram.name);

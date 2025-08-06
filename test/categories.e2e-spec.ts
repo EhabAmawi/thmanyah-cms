@@ -221,10 +221,14 @@ describe('CategoriesController (e2e)', () => {
 
       expect(Array.isArray(response.body)).toBe(true);
       expect(response.body.length).toBeGreaterThanOrEqual(2);
-      
-      const testCat = response.body.find((cat: any) => cat.name === testCategory.name);
-      const mockCat = response.body.find((cat: any) => cat.name === mockCategory.name);
-      
+
+      const testCat = response.body.find(
+        (cat: any) => cat.name === testCategory.name,
+      );
+      const mockCat = response.body.find(
+        (cat: any) => cat.name === mockCategory.name,
+      );
+
       expect(testCat).toBeDefined();
       expect(mockCat).toBeDefined();
     });
@@ -254,7 +258,7 @@ describe('CategoriesController (e2e)', () => {
         .expect(HttpStatus.OK);
 
       expect(Array.isArray(response.body)).toBe(true);
-      
+
       // All returned categories should be active
       response.body.forEach((category: any) => {
         expect(category.isActive).toBe(true);
