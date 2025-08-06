@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Language, MediaType } from '@prisma/client';
+import { Language, MediaType, SourceType } from '@prisma/client';
 
 export class Program {
   @ApiProperty({
@@ -52,6 +52,27 @@ export class Program {
     description: 'The type of media for the program',
   })
   mediaType: MediaType;
+
+  @ApiProperty({
+    enum: SourceType,
+    example: SourceType.MANUAL,
+    description: 'The source type where the program was imported from',
+  })
+  sourceType: SourceType;
+
+  @ApiProperty({
+    example: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    description: 'Original URL where the program was imported from',
+    required: false,
+  })
+  sourceUrl?: string;
+
+  @ApiProperty({
+    example: 'dQw4w9WgXcQ',
+    description: 'External platform ID for imported content',
+    required: false,
+  })
+  externalId?: string;
 
   @ApiProperty({
     example: '2024-01-01T00:00:00.000Z',
