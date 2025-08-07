@@ -46,6 +46,7 @@ npx prisma studio       # Open Prisma Studio (database GUI)
 - **Framework**: NestJS with Express platform
 - **Database**: PostgreSQL with Prisma ORM
 - **Authentication**: JWT-based authentication with Passport.js
+- **Rate Limiting**: Comprehensive rate limiting with @nestjs/throttler
 - **Language**: TypeScript
 - **Structure**: Standard NestJS modular architecture
   - `src/main.ts` - Application bootstrap (runs on port 3000 or PORT env var)
@@ -56,8 +57,9 @@ npx prisma studio       # Open Prisma Studio (database GUI)
   - `src/employees/` - Employee management module
   - `src/categories/` - Category management module
   - `src/programs/` - Program management module
+  - `src/import/` - Data import module for batch operations
   - `src/prisma/` - Prisma service and module for database integration
-  - `src/common/` - Shared services and filters
+  - `src/common/` - Shared services, filters, guards, decorators, and interceptors
 - **Testing**: Jest for unit tests, Supertest for e2e tests
 - **Build**: NestJS CLI build system outputting to `dist/`
 
@@ -68,7 +70,7 @@ npx prisma studio       # Open Prisma Studio (database GUI)
 - `eslint.config.mjs` - ESLint configuration with Prettier integration
 - `test/jest-e2e.json` - E2E test configuration
 - `prisma/schema.prisma` - Prisma database schema
-- `.env` - Environment variables (DATABASE_URL, JWT_SECRET for authentication)
+- `.env` - Environment variables (DATABASE_URL, JWT_SECRET, rate limiting settings)
 
 ## Development Notes
 
@@ -90,14 +92,15 @@ npx prisma studio       # Open Prisma Studio (database GUI)
 - **Password Security**: bcrypt hashing with salt rounds for secure password storage
 - **Passport.js Integration**: JWT and Local strategies for authentication
 - **Protected Routes**: All employee endpoints require valid JWT Bearer token
-- **Authentication Endpoints**:
+- **Authentication Endpoints** (with `@PublicRateLimit()` - 100 requests/min per IP):
   - `POST /auth/login` - Login with email/password
   - `POST /auth/refresh` - Refresh access token using refresh token
-  - `POST /auth/profile` - Get authenticated user profile
+  - `POST /auth/profile` - Get authenticated user profile (requires JWT + `@AuthenticatedRateLimit()`)
 
 ### Employees Module
 - Complete CRUD operations with REST API endpoints
 - JWT Authentication required for all endpoints
+- Rate limiting with `@AuthenticatedRateLimit()` (1000 requests/min per user)
 - Prisma database integration with PostgreSQL
 - Password field included in employee model with automatic hashing
 - Query filtering (active employees, by department)
@@ -107,6 +110,7 @@ npx prisma studio       # Open Prisma Studio (database GUI)
 ### Categories Module
 - Complete CRUD operations with REST API endpoints
 - JWT Authentication required for all endpoints
+- Rate limiting with `@AuthenticatedRateLimit()` (1000 requests/min per user)
 - Prisma database integration with PostgreSQL
 - Query filtering (active categories)
 - Unique constraint on category names
@@ -121,6 +125,7 @@ npx prisma studio       # Open Prisma Studio (database GUI)
 ### Programs Module
 - Complete CRUD operations with REST API endpoints
 - JWT Authentication required for all endpoints
+- Rate limiting: `@AuthenticatedRateLimit()` for CRUD, `@SearchRateLimit()` for filtering (30 requests/min per IP)
 - Program management with media content support
 - Multi-language support (English/Arabic) with Language enum
 - Media type support (Video/Audio) with MediaType enum
@@ -136,11 +141,39 @@ npx prisma studio       # Open Prisma Studio (database GUI)
   - `PATCH /programs/:id` - Update program
   - `DELETE /programs/:id` - Delete program
 
+### Import Module
+- Data import functionality for batch operations
+- JWT Authentication required for all endpoints
+- Rate limiting with `@AuthenticatedRateLimit()` (1000 requests/min per user)
+- Support for external data source integration
+- Video and channel import capabilities
+- Source type filtering and management
+- **Import Endpoints**:
+  - `POST /import/video` - Import video data
+  - `POST /import/channel` - Import channel data
+  - `POST /import/by-source-type` - Import by source type
+  - `GET /import/sources` - List available import sources
+
 ### Centralized Error Handling
 - `PrismaErrorMapperService` - Maps Prisma error codes to HTTP status codes
 - `PrismaExceptionFilter` - Global exception filter for consistent error responses
 - No hardcoded Prisma error codes in business logic
 - All Prisma errors handled centrally with proper HTTP exceptions
+
+### Rate Limiting & Security
+- **Comprehensive Rate Limiting**: Multi-tier rate limiting using @nestjs/throttler
+  - **Public Endpoints**: 100 requests per minute per IP address
+  - **Authenticated Endpoints**: 1000 requests per minute per user
+  - **Search/Query Endpoints**: 30 requests per minute per IP address
+- **Smart Tracking**: Per-user limits for authenticated requests, per-IP for public requests
+- **Custom Throttler Guard**: `CustomThrottlerGuard` with intelligent request tracking
+- **Rate Limit Headers**: Automatic headers with rate limit information and policies
+- **Configurable Limits**: Environment variable-based configuration for different endpoints
+- **Custom Decorators**: `@PublicRateLimit()`, `@AuthenticatedRateLimit()`, `@SearchRateLimit()`
+- **Rate Limit Components**:
+  - `src/common/guards/custom-throttler.guard.ts` - Smart request tracking guard
+  - `src/common/decorators/throttle-config.decorator.ts` - Rate limit decorators and configs
+  - `src/common/interceptors/rate-limit-headers.interceptor.ts` - Response headers interceptor
 
 ### API Documentation (Swagger)
 - NestJS Swagger integration with `@nestjs/swagger` package
@@ -240,6 +273,12 @@ curl -X PATCH http://localhost:3000/programs/1 \
 DATABASE_URL="postgresql://username:password@localhost:5432/thmanyah_cms"
 JWT_SECRET="your-secret-key-here"
 PORT=3000  # Optional, defaults to 3000
+
+# Rate Limiting Configuration
+THROTTLE_TTL=60                          # Time window in seconds (default: 60)
+THROTTLE_LIMIT_PUBLIC=100                # Public endpoint limit per TTL (default: 100)
+THROTTLE_LIMIT_AUTHENTICATED=1000        # Authenticated endpoint limit per TTL (default: 1000)  
+THROTTLE_LIMIT_SEARCH=30                 # Search endpoint limit per TTL (default: 30)
 ```
 
 ## Database Schema & Migrations
@@ -278,6 +317,7 @@ npx prisma studio
 ## Security Features
 - **Password Hashing**: All passwords are hashed using bcrypt with salt rounds
 - **JWT Security**: Short-lived access tokens with separate refresh tokens
+- **Rate Limiting Protection**: Multi-tier rate limiting prevents abuse and DoS attacks
 - **Input Validation**: Comprehensive validation using class-validator
 - **Error Handling**: Secure error responses that don't leak sensitive information
 - **CORS Protection**: Configured for secure cross-origin requests

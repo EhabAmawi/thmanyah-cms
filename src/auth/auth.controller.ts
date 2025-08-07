@@ -10,6 +10,7 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { PublicRateLimit, AuthenticatedRateLimit } from '../common/decorators/throttle-config.decorator';
 
 @ApiTags('authentication')
 @Controller('auth')
@@ -17,6 +18,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('login')
+  @PublicRateLimit()
   @ApiOperation({ summary: 'User login' })
   @ApiBody({ type: LoginDto })
   @ApiResponse({
@@ -44,6 +46,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @PublicRateLimit()
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiBody({ type: RefreshTokenDto })
   @ApiResponse({
@@ -65,6 +68,7 @@ export class AuthController {
 
   @Post('profile')
   @UseGuards(JwtAuthGuard)
+  @AuthenticatedRateLimit()
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get user profile' })
   @ApiResponse({

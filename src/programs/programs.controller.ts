@@ -27,10 +27,12 @@ import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
 import { Program } from './entities/program.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AuthenticatedRateLimit, SearchRateLimit } from '../common/decorators/throttle-config.decorator';
 
 @ApiTags('programs')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
+@AuthenticatedRateLimit()
 @Controller('programs')
 export class ProgramsController {
   constructor(private readonly programsService: ProgramsService) {}
@@ -49,6 +51,7 @@ export class ProgramsController {
   }
 
   @Get()
+  @SearchRateLimit()
   @ApiOperation({ summary: 'Get all programs with optional filtering' })
   @ApiQuery({
     name: 'language',

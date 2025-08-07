@@ -24,10 +24,12 @@ import {
 } from './dto/import-config.dto';
 import { ImportResultDto } from './dto/import-result.dto';
 import { SourceType } from '@prisma/client';
+import { AuthenticatedRateLimit } from '../common/decorators/throttle-config.decorator';
 
 @ApiTags('import')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
+@AuthenticatedRateLimit()
 @Controller('import')
 export class ImportController {
   constructor(private readonly importService: ImportService) {}
