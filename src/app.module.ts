@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -13,7 +13,7 @@ import { ImportModule } from './import/import.module';
 import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
 import { RateLimitHeadersInterceptor } from './common/interceptors/rate-limit-headers.interceptor';
 import { DiscoveryModule } from './discovery/discovery.module';
-import { CacheModule } from './cache/cache.module';
+import { CacheModule } from './cache';
 
 @Module({
   imports: [
