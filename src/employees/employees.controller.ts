@@ -25,10 +25,12 @@ import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AuthenticatedRateLimit } from '../common/decorators/throttle-config.decorator';
 
 @ApiTags('employees')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
+@AuthenticatedRateLimit()
 @Controller('employees')
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
