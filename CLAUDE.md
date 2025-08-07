@@ -45,6 +45,7 @@ npx prisma studio       # Open Prisma Studio (database GUI)
 
 - **Framework**: NestJS with Express platform
 - **Database**: PostgreSQL with Prisma ORM
+- **Caching**: Redis caching for high-performance data access
 - **Authentication**: JWT-based authentication with Passport.js
 - **Language**: TypeScript
 - **Structure**: Standard NestJS modular architecture
@@ -56,6 +57,8 @@ npx prisma studio       # Open Prisma Studio (database GUI)
   - `src/employees/` - Employee management module
   - `src/categories/` - Category management module
   - `src/programs/` - Program management module
+  - `src/discovery/` - Public discovery module for searching programs
+  - `src/cache/` - Redis caching module for performance optimization
   - `src/prisma/` - Prisma service and module for database integration
   - `src/common/` - Shared services and filters
 - **Testing**: Jest for unit tests, Supertest for e2e tests
@@ -152,6 +155,23 @@ npx prisma studio       # Open Prisma Studio (database GUI)
 - DTOs fully documented with property descriptions and example values
 - API documentation JSON available at `/api-json` endpoint
 
+### Redis Caching System
+- **High-Performance Caching**: Redis-based caching for handling 10M+ users/hour
+- **Smart TTL Management**: Configurable cache expiration times for different data types
+- **Cache Key Strategy**: Intelligent cache key generation including filter parameters
+- **Automatic Invalidation**: Cache invalidation on data updates to maintain consistency
+- **Cache Hit/Miss Logging**: Comprehensive logging for monitoring and optimization
+- **Cached Endpoints**:
+  - Discovery search results (TTL: 5 minutes)
+  - Discovery browse results (TTL: 5 minutes)
+  - Individual program details (TTL: 10 minutes)
+  - Categories list (TTL: 30 minutes)
+- **Cache Invalidation Triggers**:
+  - Program creation, updates, or deletion (published programs only)
+  - Category creation, updates, or deletion
+  - Pattern-based cache clearing for related keys
+- **Error Resilience**: Graceful fallback to database queries when cache is unavailable
+
 ### Comprehensive Testing Suite
 - **Unit Tests**: 130+ tests covering all components
   - AuthService: Login, token refresh, user validation
@@ -240,6 +260,12 @@ curl -X PATCH http://localhost:3000/programs/1 \
 DATABASE_URL="postgresql://username:password@localhost:5432/thmanyah_cms"
 JWT_SECRET="your-secret-key-here"
 PORT=3000  # Optional, defaults to 3000
+
+# Redis Configuration (Optional - defaults provided)
+REDIS_HOST=localhost    # Redis server host
+REDIS_PORT=6379        # Redis server port
+REDIS_PASSWORD=        # Redis password (if required)
+REDIS_DB=0            # Redis database number
 ```
 
 ## Database Schema & Migrations

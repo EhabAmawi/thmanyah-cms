@@ -1,11 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CategoriesService } from './categories.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 
 describe('CategoriesService', () => {
   let service: CategoriesService;
+  let cacheService: jest.Mocked<CacheService>;
 
   const mockCategory = {
     id: 1,
@@ -26,6 +28,14 @@ describe('CategoriesService', () => {
     },
   };
 
+  const mockCacheService = {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+    delPattern: jest.fn(),
+    generateKey: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -34,10 +44,22 @@ describe('CategoriesService', () => {
           provide: PrismaService,
           useValue: mockPrismaService,
         },
+        {
+          provide: CacheService,
+          useValue: mockCacheService,
+        },
       ],
     }).compile();
 
     service = module.get<CategoriesService>(CategoriesService);
+    cacheService = module.get(CacheService);
+
+    // Reset all mocks and setup default cache behavior
+    jest.clearAllMocks();
+    mockCacheService.generateKey.mockReturnValue('test-cache-key');
+    mockCacheService.get.mockResolvedValue(null); // Default cache miss
+    mockCacheService.set.mockResolvedValue(undefined);
+    mockCacheService.delPattern.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -58,6 +80,7 @@ describe('CategoriesService', () => {
       expect(mockPrismaService.category.create).toHaveBeenCalledWith({
         data: createCategoryDto,
       });
+      expect(cacheService.delPattern).toHaveBeenCalledWith('categories:list:*');
       expect(result).toEqual(mockCategory);
     });
 
@@ -81,23 +104,38 @@ describe('CategoriesService', () => {
       expect(mockPrismaService.category.create).toHaveBeenCalledWith({
         data: createCategoryDto,
       });
+      expect(cacheService.delPattern).toHaveBeenCalledWith('categories:list:*');
       expect(result).toEqual(categoryWithoutDescription);
     });
   });
 
   describe('findAll', () => {
-    it('should return all categories ordered by createdAt desc', async () => {
+    it('should return all categories ordered by createdAt desc (cache miss)', async () => {
       const categories = [mockCategory];
       mockPrismaService.category.findMany.mockResolvedValue(categories as any);
 
       const result = await service.findAll();
 
+      expect(cacheService.generateKey).toHaveBeenCalled();
+      expect(cacheService.get).toHaveBeenCalled();
       expect(mockPrismaService.category.findMany).toHaveBeenCalledWith({
         orderBy: {
           createdAt: 'desc',
         },
       });
+      expect(cacheService.set).toHaveBeenCalled();
       expect(result).toEqual(categories);
+    });
+
+    it('should return cached result when available (cache hit)', async () => {
+      const categories = [mockCategory];
+      mockCacheService.get.mockResolvedValue(categories);
+
+      const result = await service.findAll();
+
+      expect(cacheService.get).toHaveBeenCalled();
+      expect(mockPrismaService.category.findMany).not.toHaveBeenCalled();
+      expect(result).toBe(categories);
     });
 
     it('should return empty array when no categories exist', async () => {
@@ -150,6 +188,7 @@ describe('CategoriesService', () => {
         where: { id: 1 },
         data: updateCategoryDto,
       });
+      expect(cacheService.delPattern).toHaveBeenCalledWith('categories:list:*');
       expect(result).toEqual(updatedCategory);
     });
 
@@ -169,6 +208,7 @@ describe('CategoriesService', () => {
         where: { id: 1 },
         data: updateCategoryDto,
       });
+      expect(cacheService.delPattern).toHaveBeenCalledWith('categories:list:*');
       expect(result).toEqual(updatedCategory);
     });
   });
@@ -182,12 +222,13 @@ describe('CategoriesService', () => {
       expect(mockPrismaService.category.delete).toHaveBeenCalledWith({
         where: { id: 1 },
       });
+      expect(cacheService.delPattern).toHaveBeenCalledWith('categories:list:*');
       expect(result).toEqual(mockCategory);
     });
   });
 
   describe('findActive', () => {
-    it('should return only active categories ordered by name asc', async () => {
+    it('should return only active categories ordered by name asc (cache miss)', async () => {
       const activeCategories = [mockCategory];
       mockPrismaService.category.findMany.mockResolvedValue(
         activeCategories as any,
@@ -195,13 +236,27 @@ describe('CategoriesService', () => {
 
       const result = await service.findActive();
 
+      expect(cacheService.generateKey).toHaveBeenCalled();
+      expect(cacheService.get).toHaveBeenCalled();
       expect(mockPrismaService.category.findMany).toHaveBeenCalledWith({
         where: { isActive: true },
         orderBy: {
           name: 'asc',
         },
       });
+      expect(cacheService.set).toHaveBeenCalled();
       expect(result).toEqual(activeCategories);
+    });
+
+    it('should return cached result when available (cache hit)', async () => {
+      const activeCategories = [mockCategory];
+      mockCacheService.get.mockResolvedValue(activeCategories);
+
+      const result = await service.findActive();
+
+      expect(cacheService.get).toHaveBeenCalled();
+      expect(mockPrismaService.category.findMany).not.toHaveBeenCalled();
+      expect(result).toBe(activeCategories);
     });
 
     it('should return empty array when no active categories exist', async () => {

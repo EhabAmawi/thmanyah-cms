@@ -1,12 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProgramsService } from './programs.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
 import { Language, MediaType, Status } from '@prisma/client';
 
 describe('ProgramsService', () => {
   let service: ProgramsService;
+  let cacheService: jest.Mocked<CacheService>;
 
   const mockCategory = {
     id: 1,
@@ -46,6 +48,14 @@ describe('ProgramsService', () => {
     },
   };
 
+  const mockCacheService = {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+    delPattern: jest.fn(),
+    generateKey: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -54,10 +64,21 @@ describe('ProgramsService', () => {
           provide: PrismaService,
           useValue: mockPrismaService,
         },
+        {
+          provide: CacheService,
+          useValue: mockCacheService,
+        },
       ],
     }).compile();
 
     service = module.get<ProgramsService>(ProgramsService);
+    cacheService = module.get(CacheService);
+
+    // Reset all mocks and setup default cache behavior
+    jest.clearAllMocks();
+    mockCacheService.generateKey.mockReturnValue('test-cache-key');
+    mockCacheService.delPattern.mockResolvedValue(undefined);
+    mockCacheService.del.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -98,6 +119,8 @@ describe('ProgramsService', () => {
           category: true,
         },
       });
+      // Draft program should not invalidate cache
+      expect(cacheService.delPattern).not.toHaveBeenCalled();
       expect(result).toEqual(mockProgram);
     });
 
@@ -139,6 +162,9 @@ describe('ProgramsService', () => {
           category: true,
         },
       });
+      // Published program should invalidate cache
+      expect(cacheService.delPattern).toHaveBeenCalledWith('discovery:search:*');
+      expect(cacheService.delPattern).toHaveBeenCalledWith('discovery:browse:*');
       expect(result).toEqual(arabicProgram);
     });
   });
