@@ -4,6 +4,7 @@ import { DiscoveryController } from './discovery.controller';
 import { DiscoveryService } from './discovery.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { BrowseProgramsDto } from './dto/browse-programs.dto';
 import { Language, MediaType, Status } from '@prisma/client';
 
 describe('DiscoveryModule', () => {
@@ -44,6 +45,7 @@ describe('DiscoveryModule', () => {
     program: {
       findMany: jest.fn(),
       findFirst: jest.fn(),
+      count: jest.fn(),
     },
     $queryRaw: jest.fn(),
   };
@@ -93,6 +95,7 @@ describe('DiscoveryModule', () => {
   describe('Integration Tests', () => {
     it('should search programs through controller and service integration', async () => {
       const searchDto = { q: 'programming' };
+      const mockCountResult = [{ count: '1' }];
       const mockRawResult = [
         {
           id: 1,
@@ -112,32 +115,46 @@ describe('DiscoveryModule', () => {
         },
       ];
 
-      mockPrismaService.$queryRaw.mockResolvedValue(mockRawResult);
+      // Mock the count query first, then the data query
+      mockPrismaService.$queryRaw
+        .mockResolvedValueOnce(mockCountResult)
+        .mockResolvedValueOnce(mockRawResult);
 
       const result = await discoveryController.searchPrograms(searchDto);
 
-      expect(prismaService.$queryRaw).toHaveBeenCalled();
-      expect(result).toHaveLength(1);
-      expect(result[0].name).toBe('Introduction to Programming');
-      expect(result[0].category).toEqual({
+      expect(prismaService.$queryRaw).toHaveBeenCalledTimes(2);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].name).toBe('Introduction to Programming');
+      expect(result.data[0].category).toEqual({
         id: 1,
         name: 'Technology',
         description: 'Technology and programming courses',
       });
+      expect(result.meta.total).toBe(1);
+      expect(result.meta.totalPages).toBe(1);
     });
 
     it('should browse programs through controller and service integration', async () => {
-      const browseDto = {
-        categoryId: 1,
-        language: Language.ENGLISH,
-        mediaType: MediaType.VIDEO,
-      };
+      const browseDto = new BrowseProgramsDto();
+      browseDto.categoryId = 1;
+      browseDto.language = Language.ENGLISH;
+      browseDto.mediaType = MediaType.VIDEO;
+      
       mockPrismaService.program.findMany.mockResolvedValue([
         mockPublishedProgram,
       ]);
+      mockPrismaService.program.count.mockResolvedValue(1);
 
       const result = await discoveryController.browsePrograms(browseDto);
 
+      expect(prismaService.program.count).toHaveBeenCalledWith({
+        where: {
+          status: Status.PUBLISHED,
+          categoryId: 1,
+          language: Language.ENGLISH,
+          mediaType: MediaType.VIDEO,
+        },
+      });
       expect(prismaService.program.findMany).toHaveBeenCalledWith({
         where: {
           status: Status.PUBLISHED,
@@ -157,9 +174,13 @@ describe('DiscoveryModule', () => {
         orderBy: {
           releaseDate: 'desc',
         },
+        take: 20,
+        skip: 0,
       });
-      expect(result).toHaveLength(1);
-      expect(result[0].category.name).toBe('Technology');
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].category.name).toBe('Technology');
+      expect(result.meta.total).toBe(1);
+      expect(result.meta.totalPages).toBe(1);
     });
 
     it('should get program by id through controller and service integration', async () => {

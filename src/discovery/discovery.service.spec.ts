@@ -44,6 +44,7 @@ describe('DiscoveryService', () => {
     program: {
       findMany: jest.fn(),
       findFirst: jest.fn(),
+      count: jest.fn(),
     },
     $queryRaw: jest.fn(),
   };
@@ -88,15 +89,21 @@ describe('DiscoveryService', () => {
 
   describe('searchPrograms', () => {
     it('should search programs without query parameter (cache miss)', async () => {
-      const searchDto: SearchProgramsDto = {};
+      const searchDto = new SearchProgramsDto();
       mockPrismaService.program.findMany.mockResolvedValue([
         mockPublishedProgram,
       ]);
+      mockPrismaService.program.count.mockResolvedValue(1);
 
       const result = await service.searchPrograms(searchDto);
 
       expect(cacheService.generateKey).toHaveBeenCalled();
       expect(cacheService.get).toHaveBeenCalled();
+      expect(prismaService.program.count).toHaveBeenCalledWith({
+        where: {
+          status: Status.PUBLISHED,
+        },
+      });
       expect(prismaService.program.findMany).toHaveBeenCalledWith({
         where: {
           status: Status.PUBLISHED,
@@ -113,26 +120,36 @@ describe('DiscoveryService', () => {
         orderBy: {
           releaseDate: 'desc',
         },
+        skip: 0,
+        take: 20,
       });
       expect(cacheService.set).toHaveBeenCalled();
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe(mockPublishedProgram.id);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].id).toBe(mockPublishedProgram.id);
+      expect(result.meta.total).toBe(1);
+      expect(result.meta.totalPages).toBe(1);
     });
 
     it('should return cached result when available (cache hit)', async () => {
-      const searchDto: SearchProgramsDto = {};
-      const cachedResult = [mockPublishedProgram];
+      const searchDto = new SearchProgramsDto();
+      const cachedResult = {
+        data: [mockPublishedProgram],
+        meta: { page: 1, limit: 20, total: 1, totalPages: 1 },
+      };
       mockCacheService.get.mockResolvedValue(cachedResult);
 
       const result = await service.searchPrograms(searchDto);
 
       expect(cacheService.get).toHaveBeenCalled();
       expect(prismaService.program.findMany).not.toHaveBeenCalled();
+      expect(prismaService.program.count).not.toHaveBeenCalled();
       expect(result).toBe(cachedResult);
     });
 
     it('should search programs with query parameter', async () => {
-      const searchDto: SearchProgramsDto = { q: 'programming' };
+      const searchDto = new SearchProgramsDto();
+      searchDto.q = 'programming';
+      const mockCountResult = [{ count: '1' }];
       const mockRawResult = [
         {
           id: 1,
@@ -152,36 +169,53 @@ describe('DiscoveryService', () => {
         },
       ];
 
-      mockPrismaService.$queryRaw.mockResolvedValue(mockRawResult);
+      // Mock the count query first, then the data query
+      mockPrismaService.$queryRaw
+        .mockResolvedValueOnce(mockCountResult)
+        .mockResolvedValueOnce(mockRawResult);
 
       const result = await service.searchPrograms(searchDto);
 
-      expect(prismaService.$queryRaw).toHaveBeenCalled();
-      expect(result).toHaveLength(1);
-      expect(result[0].name).toBe('Introduction to Programming');
-      expect(result[0].category).toEqual({
+      expect(prismaService.$queryRaw).toHaveBeenCalledTimes(2);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].name).toBe('Introduction to Programming');
+      expect(result.data[0].category).toEqual({
         id: 1,
         name: 'Technology',
         description: 'Technology and programming courses',
       });
+      expect(result.meta.total).toBe(1);
+      expect(result.meta.totalPages).toBe(1);
     });
 
     it('should return empty array when no programs match search', async () => {
-      const searchDto: SearchProgramsDto = { q: 'nonexistent' };
-      mockPrismaService.$queryRaw.mockResolvedValue([]);
+      const searchDto = new SearchProgramsDto();
+      searchDto.q = 'nonexistent';
+      const mockCountResult = [{ count: '0' }];
+      
+      mockPrismaService.$queryRaw
+        .mockResolvedValueOnce(mockCountResult)
+        .mockResolvedValueOnce([]);
 
       const result = await service.searchPrograms(searchDto);
 
-      expect(result).toEqual([]);
+      expect(result.data).toEqual([]);
+      expect(result.meta.total).toBe(0);
+      expect(result.meta.totalPages).toBe(0);
     });
 
     it('should only return published programs in search', async () => {
-      const searchDto: SearchProgramsDto = { q: 'program' };
-      mockPrismaService.$queryRaw.mockResolvedValue([]);
+      const searchDto = new SearchProgramsDto();
+      searchDto.q = 'program';
+      const mockCountResult = [{ count: '0' }];
+      
+      mockPrismaService.$queryRaw
+        .mockResolvedValueOnce(mockCountResult)
+        .mockResolvedValueOnce([]);
 
       await service.searchPrograms(searchDto);
 
-      expect(prismaService.$queryRaw).toHaveBeenCalled();
+      expect(prismaService.$queryRaw).toHaveBeenCalledTimes(2);
       // The SQL query includes WHERE p.status = 'PUBLISHED'
       const queryCall = mockPrismaService.$queryRaw.mock.calls[0];
       expect(queryCall[0].raw[0]).toContain("WHERE p.status = 'PUBLISHED'");
@@ -190,15 +224,21 @@ describe('DiscoveryService', () => {
 
   describe('browsePrograms', () => {
     it('should browse programs without filters (cache miss)', async () => {
-      const browseDto: BrowseProgramsDto = {};
+      const browseDto = new BrowseProgramsDto();
       mockPrismaService.program.findMany.mockResolvedValue([
         mockPublishedProgram,
       ]);
+      mockPrismaService.program.count.mockResolvedValue(1);
 
       const result = await service.browsePrograms(browseDto);
 
       expect(cacheService.generateKey).toHaveBeenCalled();
       expect(cacheService.get).toHaveBeenCalled();
+      expect(prismaService.program.count).toHaveBeenCalledWith({
+        where: {
+          status: Status.PUBLISHED,
+        },
+      });
       expect(prismaService.program.findMany).toHaveBeenCalledWith({
         where: {
           status: Status.PUBLISHED,
@@ -215,31 +255,47 @@ describe('DiscoveryService', () => {
         orderBy: {
           releaseDate: 'desc',
         },
+        skip: 0,
+        take: 20,
       });
       expect(cacheService.set).toHaveBeenCalled();
-      expect(result).toHaveLength(1);
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.total).toBe(1);
+      expect(result.meta.totalPages).toBe(1);
     });
 
     it('should return cached result when available (cache hit)', async () => {
-      const browseDto: BrowseProgramsDto = {};
-      const cachedResult = [mockPublishedProgram];
+      const browseDto = new BrowseProgramsDto();
+      const cachedResult = {
+        data: [mockPublishedProgram],
+        meta: { page: 1, limit: 20, total: 1, totalPages: 1 },
+      };
       mockCacheService.get.mockResolvedValue(cachedResult);
 
       const result = await service.browsePrograms(browseDto);
 
       expect(cacheService.get).toHaveBeenCalled();
       expect(prismaService.program.findMany).not.toHaveBeenCalled();
+      expect(prismaService.program.count).not.toHaveBeenCalled();
       expect(result).toBe(cachedResult);
     });
 
     it('should browse programs with category filter', async () => {
-      const browseDto: BrowseProgramsDto = { categoryId: 1 };
+      const browseDto = new BrowseProgramsDto();
+      browseDto.categoryId = 1;
       mockPrismaService.program.findMany.mockResolvedValue([
         mockPublishedProgram,
       ]);
+      mockPrismaService.program.count.mockResolvedValue(1);
 
       const result = await service.browsePrograms(browseDto);
 
+      expect(prismaService.program.count).toHaveBeenCalledWith({
+        where: {
+          status: Status.PUBLISHED,
+          categoryId: 1,
+        },
+      });
       expect(prismaService.program.findMany).toHaveBeenCalledWith({
         where: {
           status: Status.PUBLISHED,
@@ -257,19 +313,24 @@ describe('DiscoveryService', () => {
         orderBy: {
           releaseDate: 'desc',
         },
+        skip: 0,
+        take: 20,
       });
-      expect(result).toHaveLength(1);
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.total).toBe(1);
     });
 
     it('should browse programs with language filter', async () => {
-      const browseDto: BrowseProgramsDto = { language: Language.ENGLISH };
+      const browseDto = new BrowseProgramsDto();
+      browseDto.language = Language.ENGLISH;
       mockPrismaService.program.findMany.mockResolvedValue([
         mockPublishedProgram,
       ]);
+      mockPrismaService.program.count.mockResolvedValue(1);
 
       await service.browsePrograms(browseDto);
 
-      expect(prismaService.program.findMany).toHaveBeenCalledWith(
+      expect(prismaService.program.count).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             status: Status.PUBLISHED,
@@ -277,17 +338,29 @@ describe('DiscoveryService', () => {
           }),
         }),
       );
+      expect(prismaService.program.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: Status.PUBLISHED,
+            language: Language.ENGLISH,
+          }),
+          skip: 0,
+          take: 20,
+        }),
+      );
     });
 
     it('should browse programs with media type filter', async () => {
-      const browseDto: BrowseProgramsDto = { mediaType: MediaType.VIDEO };
+      const browseDto = new BrowseProgramsDto();
+      browseDto.mediaType = MediaType.VIDEO;
       mockPrismaService.program.findMany.mockResolvedValue([
         mockPublishedProgram,
       ]);
+      mockPrismaService.program.count.mockResolvedValue(1);
 
       await service.browsePrograms(browseDto);
 
-      expect(prismaService.program.findMany).toHaveBeenCalledWith(
+      expect(prismaService.program.count).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             status: Status.PUBLISHED,
@@ -295,20 +368,40 @@ describe('DiscoveryService', () => {
           }),
         }),
       );
+      expect(prismaService.program.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: Status.PUBLISHED,
+            mediaType: MediaType.VIDEO,
+          }),
+          skip: 0,
+          take: 20,
+        }),
+      );
     });
 
     it('should browse programs with multiple filters', async () => {
-      const browseDto: BrowseProgramsDto = {
-        categoryId: 1,
-        language: Language.ENGLISH,
-        mediaType: MediaType.VIDEO,
-      };
+      const browseDto = new BrowseProgramsDto();
+      browseDto.categoryId = 1;
+      browseDto.language = Language.ENGLISH;
+      browseDto.mediaType = MediaType.VIDEO;
       mockPrismaService.program.findMany.mockResolvedValue([
         mockPublishedProgram,
       ]);
+      mockPrismaService.program.count.mockResolvedValue(1);
 
       await service.browsePrograms(browseDto);
 
+      expect(prismaService.program.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            status: Status.PUBLISHED,
+            categoryId: 1,
+            language: Language.ENGLISH,
+            mediaType: MediaType.VIDEO,
+          },
+        }),
+      );
       expect(prismaService.program.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
@@ -317,6 +410,8 @@ describe('DiscoveryService', () => {
             language: Language.ENGLISH,
             mediaType: MediaType.VIDEO,
           },
+          skip: 0,
+          take: 20,
         }),
       );
     });

@@ -92,172 +92,108 @@ describe('ProgramsController', () => {
   });
 
   describe('findAll', () => {
-    it('should return all programs when no query params', async () => {
-      const programs = [mockProgram];
-      service.findAll.mockResolvedValue(programs as any);
+    it('should return paginated programs when no query params', async () => {
+      const paginatedResponse = {
+        data: [mockProgram],
+        meta: { page: 1, limit: 20, total: 1, totalPages: 1 },
+      };
+      service.findAllPaginated.mockResolvedValue(paginatedResponse as any);
 
-      const result = await controller.findAll();
+      const result = await controller.findAll({});
 
-      expect(service.findAll).toHaveBeenCalled();
-      expect(result).toEqual(programs);
+      expect(service.findAllPaginated).toHaveBeenCalledWith({});
+      expect(result).toEqual(paginatedResponse);
     });
 
-    it('should return recent programs when recent param provided', async () => {
-      const recentPrograms = [mockProgram];
-      service.findRecent.mockResolvedValue(recentPrograms as any);
+    it('should return paginated programs with language filter', async () => {
+      const queryDto = { language: Language.ENGLISH };
+      const paginatedResponse = {
+        data: [mockProgram],
+        meta: { page: 1, limit: 20, total: 1, totalPages: 1 },
+      };
+      service.findAllPaginated.mockResolvedValue(paginatedResponse as any);
 
-      const result = await controller.findAll(
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        '5',
-      );
+      const result = await controller.findAll(queryDto);
 
-      expect(service.findRecent).toHaveBeenCalledWith(5);
-      expect(result).toEqual(recentPrograms);
+      expect(service.findAllPaginated).toHaveBeenCalledWith(queryDto);
+      expect(result).toEqual(paginatedResponse);
     });
 
-    it('should return recent programs with default limit when recent param is invalid', async () => {
-      const recentPrograms = [mockProgram];
-      service.findRecent.mockResolvedValue(recentPrograms as any);
+    it('should return paginated programs with mediaType filter', async () => {
+      const queryDto = { mediaType: MediaType.VIDEO };
+      const paginatedResponse = {
+        data: [mockProgram],
+        meta: { page: 1, limit: 20, total: 1, totalPages: 1 },
+      };
+      service.findAllPaginated.mockResolvedValue(paginatedResponse as any);
 
-      const result = await controller.findAll(
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        'invalid',
-      );
+      const result = await controller.findAll(queryDto);
 
-      expect(service.findRecent).toHaveBeenCalledWith(10);
-      expect(result).toEqual(recentPrograms);
+      expect(service.findAllPaginated).toHaveBeenCalledWith(queryDto);
+      expect(result).toEqual(paginatedResponse);
     });
 
-    it('should return programs by language when language param provided', async () => {
-      const englishPrograms = [mockProgram];
-      service.findByLanguage.mockResolvedValue(englishPrograms as any);
+    it('should return paginated programs with status filter', async () => {
+      const queryDto = { status: Status.PUBLISHED };
+      const paginatedResponse = {
+        data: [mockProgram],
+        meta: { page: 1, limit: 20, total: 1, totalPages: 1 },
+      };
+      service.findAllPaginated.mockResolvedValue(paginatedResponse as any);
 
-      const result = await controller.findAll(Language.ENGLISH);
+      const result = await controller.findAll(queryDto);
 
-      expect(service.findByLanguage).toHaveBeenCalledWith(Language.ENGLISH);
-      expect(result).toEqual(englishPrograms);
+      expect(service.findAllPaginated).toHaveBeenCalledWith(queryDto);
+      expect(result).toEqual(paginatedResponse);
     });
 
-    it('should return programs by media type when mediaType param provided', async () => {
-      const videoPrograms = [mockProgram];
-      service.findByMediaType.mockResolvedValue(videoPrograms as any);
+    it('should return paginated programs with category filter', async () => {
+      const queryDto = { categoryId: 1 };
+      const paginatedResponse = {
+        data: [mockProgram],
+        meta: { page: 1, limit: 20, total: 1, totalPages: 1 },
+      };
+      service.findAllPaginated.mockResolvedValue(paginatedResponse as any);
 
-      const result = await controller.findAll(undefined, MediaType.VIDEO);
+      const result = await controller.findAll(queryDto);
 
-      expect(service.findByMediaType).toHaveBeenCalledWith(MediaType.VIDEO);
-      expect(result).toEqual(videoPrograms);
+      expect(service.findAllPaginated).toHaveBeenCalledWith(queryDto);
+      expect(result).toEqual(paginatedResponse);
     });
 
-    it('should return programs by status when status param provided', async () => {
-      const publishedPrograms = [mockProgram];
-      service.findByStatus.mockResolvedValue(publishedPrograms as any);
+    it('should return paginated programs with pagination params', async () => {
+      const queryDto = { page: 2, limit: 10 };
+      const paginatedResponse = {
+        data: [mockProgram],
+        meta: { page: 2, limit: 10, total: 15, totalPages: 2 },
+      };
+      service.findAllPaginated.mockResolvedValue(paginatedResponse as any);
 
-      const result = await controller.findAll(
-        undefined,
-        undefined,
-        Status.PUBLISHED,
-      );
+      const result = await controller.findAll(queryDto);
 
-      expect(service.findByStatus).toHaveBeenCalledWith(Status.PUBLISHED);
-      expect(result).toEqual(publishedPrograms);
+      expect(service.findAllPaginated).toHaveBeenCalledWith(queryDto);
+      expect(result).toEqual(paginatedResponse);
     });
 
-    it('should return programs by category when categoryId param provided', async () => {
-      const categoryPrograms = [mockProgram];
-      service.findByCategory.mockResolvedValue(categoryPrograms as any);
+    it('should return paginated programs with multiple filters', async () => {
+      const queryDto = { 
+        language: Language.ENGLISH, 
+        mediaType: MediaType.VIDEO,
+        status: Status.PUBLISHED,
+        categoryId: 1,
+        page: 1,
+        limit: 5
+      };
+      const paginatedResponse = {
+        data: [mockProgram],
+        meta: { page: 1, limit: 5, total: 1, totalPages: 1 },
+      };
+      service.findAllPaginated.mockResolvedValue(paginatedResponse as any);
 
-      const result = await controller.findAll(
-        undefined,
-        undefined,
-        undefined,
-        '1',
-      );
+      const result = await controller.findAll(queryDto);
 
-      expect(service.findByCategory).toHaveBeenCalledWith(1);
-      expect(result).toEqual(categoryPrograms);
-    });
-
-    it('should throw error when categoryId param is invalid', async () => {
-      await expect(
-        controller.findAll(undefined, undefined, undefined, 'invalid'),
-      ).rejects.toThrow('Invalid category ID');
-    });
-
-    it('should prioritize recent over other filters', async () => {
-      const recentPrograms = [mockProgram];
-      service.findRecent.mockResolvedValue(recentPrograms as any);
-
-      const result = await controller.findAll(
-        Language.ENGLISH,
-        MediaType.VIDEO,
-        Status.PUBLISHED,
-        '1',
-        '3',
-      );
-
-      expect(service.findRecent).toHaveBeenCalledWith(3);
-      expect(service.findByLanguage).not.toHaveBeenCalled();
-      expect(service.findByMediaType).not.toHaveBeenCalled();
-      expect(service.findByStatus).not.toHaveBeenCalled();
-      expect(service.findByCategory).not.toHaveBeenCalled();
-      expect(result).toEqual(recentPrograms);
-    });
-
-    it('should prioritize language over other filters when provided', async () => {
-      const englishPrograms = [mockProgram];
-      service.findByLanguage.mockResolvedValue(englishPrograms as any);
-
-      const result = await controller.findAll(
-        Language.ENGLISH,
-        MediaType.VIDEO,
-        Status.PUBLISHED,
-        '1',
-      );
-
-      expect(service.findByLanguage).toHaveBeenCalledWith(Language.ENGLISH);
-      expect(service.findByMediaType).not.toHaveBeenCalled();
-      expect(service.findByStatus).not.toHaveBeenCalled();
-      expect(service.findByCategory).not.toHaveBeenCalled();
-      expect(result).toEqual(englishPrograms);
-    });
-
-    it('should prioritize mediaType over status and category when language not provided', async () => {
-      const videoPrograms = [mockProgram];
-      service.findByMediaType.mockResolvedValue(videoPrograms as any);
-
-      const result = await controller.findAll(
-        undefined,
-        MediaType.VIDEO,
-        Status.PUBLISHED,
-        '1',
-      );
-
-      expect(service.findByMediaType).toHaveBeenCalledWith(MediaType.VIDEO);
-      expect(service.findByStatus).not.toHaveBeenCalled();
-      expect(service.findByCategory).not.toHaveBeenCalled();
-      expect(result).toEqual(videoPrograms);
-    });
-
-    it('should prioritize status over category when language and mediaType not provided', async () => {
-      const publishedPrograms = [mockProgram];
-      service.findByStatus.mockResolvedValue(publishedPrograms as any);
-
-      const result = await controller.findAll(
-        undefined,
-        undefined,
-        Status.PUBLISHED,
-        '1',
-      );
-
-      expect(service.findByStatus).toHaveBeenCalledWith(Status.PUBLISHED);
-      expect(service.findByCategory).not.toHaveBeenCalled();
-      expect(result).toEqual(publishedPrograms);
+      expect(service.findAllPaginated).toHaveBeenCalledWith(queryDto);
+      expect(result).toEqual(paginatedResponse);
     });
   });
 
