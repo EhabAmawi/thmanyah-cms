@@ -1,0 +1,124 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database (Development)
+  postgres-dev:
+    image: postgres:16-alpine
+    container_name: thmanyah-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-thmanyah_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-thmanyah_cms_dev}
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    networks:
+      - thmanyah-dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-thmanyah_dev}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache (Development)
+  redis-dev:
+    image: redis:7-alpine
+    container_name: thmanyah-redis-dev
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-dev-data:/data
+    ports:
+      - "${REDIS_PORT:-6380}:6379"
+    networks:
+      - thmanyah-dev-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # NestJS Application (Development with hot reload)
+  app-dev:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    container_name: thmanyah-app-dev
+    restart: unless-stopped
+    env_file:
+      - .env.development
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-thmanyah_dev}:${POSTGRES_PASSWORD:-dev_secret}@postgres-dev:5432/${POSTGRES_DB:-thmanyah_cms_dev}?schema=public
+      REDIS_HOST: redis-dev
+      REDIS_PORT: 6379
+      PORT: 3000
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/dist
+    ports:
+      - "${APP_PORT:-3000}:3000"
+      - "9229:9229"  # Node debugger port
+    networks:
+      - thmanyah-dev-network
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+      redis-dev:
+        condition: service_healthy
+    command: >
+      sh -c "
+        yarn install &&
+        npx prisma generate &&
+        npx prisma migrate dev &&
+        yarn start:dev
+      "
+
+  # Prisma Studio (Development)
+  prisma-studio:
+    image: node:20-alpine
+    container_name: thmanyah-prisma-studio
+    working_dir: /app
+    env_file:
+      - .env.development
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-thmanyah_dev}:${POSTGRES_PASSWORD:-dev_secret}@postgres-dev:5432/${POSTGRES_DB:-thmanyah_cms_dev}?schema=public
+    volumes:
+      - .:/app
+    ports:
+      - "5555:5555"
+    networks:
+      - thmanyah-dev-network
+    depends_on:
+      - postgres-dev
+    command: npx prisma studio
+    profiles:
+      - studio
+
+  # Adminer (Database GUI)
+  adminer:
+    image: adminer:latest
+    container_name: thmanyah-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - thmanyah-dev-network
+    depends_on:
+      - postgres-dev
+    profiles:
+      - tools
+
+networks:
+  thmanyah-dev-network:
+    driver: bridge
+    name: thmanyah-dev-network
+
+volumes:
+  postgres-dev-data:
+    name: thmanyah-postgres-dev-data
+  redis-dev-data:
+    name: thmanyah-redis-dev-data

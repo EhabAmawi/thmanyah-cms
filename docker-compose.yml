@@ -1,0 +1,112 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: thmanyah-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-thmanyah}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-thmanyah_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-thmanyah_cms}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - thmanyah-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-thmanyah} -d ${POSTGRES_DB:-thmanyah_cms}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: thmanyah-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_secret}
+    volumes:
+      - redis-data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - thmanyah-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # NestJS Application
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: runner
+    container_name: thmanyah-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-thmanyah}:${POSTGRES_PASSWORD:-thmanyah_secret}@postgres:5432/${POSTGRES_DB:-thmanyah_cms}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_secret}
+      PORT: 3000
+    volumes:
+      - ./uploads:/app/uploads
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    networks:
+      - thmanyah-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "
+        npx prisma migrate deploy &&
+        node dist/src/main.js
+      "
+
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: thmanyah-nginx
+    restart: unless-stopped
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - nginx-cache:/var/cache/nginx
+      - nginx-logs:/var/log/nginx
+    ports:
+      - "${NGINX_PORT:-80}:80"
+      - "${NGINX_SSL_PORT:-443}:443"
+    networks:
+      - thmanyah-network
+    depends_on:
+      - app
+    profiles:
+      - with-nginx
+
+networks:
+  thmanyah-network:
+    driver: bridge
+    name: thmanyah-network
+
+volumes:
+  postgres-data:
+    name: thmanyah-postgres-data
+  redis-data:
+    name: thmanyah-redis-data
+  nginx-cache:
+    name: thmanyah-nginx-cache
+  nginx-logs:
+    name: thmanyah-nginx-logs

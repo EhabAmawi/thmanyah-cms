@@ -1,0 +1,26 @@
+# Development Dockerfile with hot reload support
+
+FROM node:20-alpine
+WORKDIR /app
+
+# Install necessary tools
+RUN apk add --no-cache bash git
+
+# Install global packages
+RUN npm install -g @nestjs/cli
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nestjs -u 1001
+
+# Set ownership
+RUN chown -R nestjs:nodejs /app
+
+# Switch to non-root user
+USER nestjs
+
+# Expose ports
+EXPOSE 3000 9229
+
+# Development command with debugging support
+CMD ["yarn", "start:dev"]

@@ -1,0 +1,76 @@
+# Node modules
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Build outputs
+dist
+build
+*.tsbuildinfo
+
+# Environment files (copy manually)
+.env
+.env.local
+.env.*.local
+
+# IDE and OS files
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+docs
+
+# Test files
+coverage
+.nyc_output
+test
+*.spec.ts
+*.test.ts
+*.e2e-spec.ts
+
+# Development files
+.eslintrc.*
+.prettierrc
+jest.config.*
+tsconfig.spec.json
+
+# Docker files (in development)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Logs
+logs
+*.log
+
+# Temporary files
+tmp
+temp
+*.tmp
+
+# Backups
+backups
+*.backup
+*.sql
+*.sql.gz
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.circleci
+.travis.yml
+
+# Package manager files (except lock files)
+.npmrc
+.yarnrc
