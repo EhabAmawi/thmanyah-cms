@@ -13,25 +13,25 @@ export const ThrottleConfig = (config: ThrottleConfig) =>
 
 // Predefined configurations using @nestjs/throttler decorators
 export const PublicRateLimit = () =>
-  Throttle({ 
-    default: { 
-      limit: parseInt(process.env.THROTTLE_LIMIT_PUBLIC || '100'), 
-      ttl: parseInt(process.env.THROTTLE_TTL || '60') * 1000 
-    } 
+  Throttle({
+    default: {
+      limit: parseInt(process.env.THROTTLE_LIMIT_PUBLIC || '100'),
+      ttl: parseInt(process.env.THROTTLE_TTL || '60') * 1000,
+    },
   });
 
 export const AuthenticatedRateLimit = () =>
-  Throttle({ 
-    authenticated: { 
-      limit: parseInt(process.env.THROTTLE_LIMIT_AUTHENTICATED || '1000'), 
-      ttl: parseInt(process.env.THROTTLE_TTL || '60') * 1000 
-    } 
+  Throttle({
+    authenticated: {
+      limit: parseInt(process.env.THROTTLE_LIMIT_AUTHENTICATED || '1000'),
+      ttl: parseInt(process.env.THROTTLE_TTL || '60') * 1000,
+    },
   });
 
 export const SearchRateLimit = () =>
-  Throttle({ 
-    search: { 
-      limit: parseInt(process.env.THROTTLE_LIMIT_SEARCH || '30'), 
-      ttl: parseInt(process.env.THROTTLE_TTL || '60') * 1000 
-    } 
+  Throttle({
+    search: {
+      limit: parseInt(process.env.THROTTLE_LIMIT_SEARCH || '30'),
+      ttl: parseInt(process.env.THROTTLE_TTL || '60') * 1000,
+    },
   });

@@ -164,8 +164,12 @@ describe('ProgramsService', () => {
         },
       });
       // Published program should invalidate cache
-      expect(cacheService.delPattern).toHaveBeenCalledWith('discovery:search:*');
-      expect(cacheService.delPattern).toHaveBeenCalledWith('discovery:browse:*');
+      expect(cacheService.delPattern).toHaveBeenCalledWith(
+        'discovery:search:*',
+      );
+      expect(cacheService.delPattern).toHaveBeenCalledWith(
+        'discovery:browse:*',
+      );
       expect(result).toEqual(arabicProgram);
     });
   });
@@ -439,26 +443,28 @@ describe('ProgramsService', () => {
 
     describe('searchPrograms', () => {
       it('should search programs using full-text search', async () => {
-        const mockRawResult = [{
-          id: 1,
-          name: 'Introduction to Programming',
-          description: 'A comprehensive introduction to programming concepts',
-          language: 'ENGLISH',
-          durationSec: 3600,
-          releaseDate: new Date('2024-01-01'),
-          mediaUrl: 'https://example.com/media/program1.mp4',
-          mediaType: 'VIDEO',
-          status: 'PUBLISHED',
-          createdAt: new Date('2024-01-01'),
-          updatedAt: new Date('2024-01-01'),
-          sourceType: 'MANUAL',
-          sourceUrl: null,
-          externalId: null,
-          categoryId: 1,
-          categoryName: 'Programming',
-          categoryDescription: 'Programming courses',
-        }];
-        
+        const mockRawResult = [
+          {
+            id: 1,
+            name: 'Introduction to Programming',
+            description: 'A comprehensive introduction to programming concepts',
+            language: 'ENGLISH',
+            durationSec: 3600,
+            releaseDate: new Date('2024-01-01'),
+            mediaUrl: 'https://example.com/media/program1.mp4',
+            mediaType: 'VIDEO',
+            status: 'PUBLISHED',
+            createdAt: new Date('2024-01-01'),
+            updatedAt: new Date('2024-01-01'),
+            sourceType: 'MANUAL',
+            sourceUrl: null,
+            externalId: null,
+            categoryId: 1,
+            categoryName: 'Programming',
+            categoryDescription: 'Programming courses',
+          },
+        ];
+
         mockPrismaService.$queryRawUnsafe.mockResolvedValue(mockRawResult);
 
         const result = await service.searchPrograms('programming', {

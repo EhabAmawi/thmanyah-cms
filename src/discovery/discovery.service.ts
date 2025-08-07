@@ -4,6 +4,7 @@ import { CacheService, CACHE_KEYS, CACHE_TTL } from '../cache';
 import { SearchProgramsDto } from './dto/search-programs.dto';
 import { BrowseProgramsDto } from './dto/browse-programs.dto';
 import { ProgramDiscoveryDto } from './dto/program-discovery.dto';
+import { PaginatedResponse } from '../common/dto/pagination.dto';
 import { Status } from '@prisma/client';
 
 @Injectable()
@@ -15,21 +16,24 @@ export class DiscoveryService {
 
   async searchPrograms(
     searchDto: SearchProgramsDto,
-  ): Promise<ProgramDiscoveryDto[]> {
+  ): Promise<PaginatedResponse<ProgramDiscoveryDto>> {
     const cacheKey = this.cacheService.generateKey(
       CACHE_KEYS.DISCOVERY_SEARCH,
       searchDto,
     );
 
     // Try to get from cache first
-    const cachedResult = await this.cacheService.get<ProgramDiscoveryDto[]>(
-      cacheKey,
-      { logHitMiss: true },
-    );
+    const cachedResult = await this.cacheService.get<
+      PaginatedResponse<ProgramDiscoveryDto>
+    >(cacheKey, { logHitMiss: true });
 
     if (cachedResult) {
       return cachedResult;
     }
+
+    const page = searchDto.page || 1;
+    const limit = searchDto.limit || 20;
+    const offset = searchDto.offset;
 
     // If not in cache, fetch from database
     const whereConditions: any = {
@@ -37,14 +41,32 @@ export class DiscoveryService {
     };
 
     let programs;
-    
+    let total: number;
+
     if (searchDto.q) {
       // Use PostgreSQL full-text search for better performance and relevance
       // Escape the search query for safe use in SQL
-      const searchQuery = searchDto.q.trim().replace(/[^\w\s]/gi, ' ').split(/\s+/).filter(word => word.length > 0).join(' & ');
-      
+      const searchQuery = searchDto.q
+        .trim()
+        .replace(/[^\w\s]/gi, ' ')
+        .split(/\s+/)
+        .filter((word) => word.length > 0)
+        .join(' & ');
+
       if (searchQuery) {
-        // Use raw SQL with full-text search for optimal performance
+        // Get total count for pagination
+        const countResult = await this.prisma.$queryRaw<[{ count: bigint }]>`
+          SELECT COUNT(*) as count
+          FROM programs p
+          WHERE p.status = 'PUBLISHED'
+            AND (
+              to_tsvector('english', p.name || ' ' || COALESCE(p.description, '')) 
+              @@ plainto_tsquery('english', ${searchQuery})
+            )
+        `;
+        total = Number(countResult[0].count);
+
+        // Use raw SQL with full-text search for optimal performance with pagination
         programs = await this.prisma.$queryRaw<any[]>`
           SELECT p.id, p.name, p.description, p.language, p.duration_sec as "durationSec", 
                  p.release_date as "releaseDate", p.media_url as "mediaUrl", 
@@ -64,8 +86,9 @@ export class DiscoveryService {
               plainto_tsquery('english', ${searchQuery})
             ) DESC,
             p.release_date DESC
+          LIMIT ${limit} OFFSET ${offset}
         `;
-        
+
         // Transform the raw result to match expected format
         programs = programs.map((program: any) => ({
           ...program,
@@ -81,6 +104,10 @@ export class DiscoveryService {
         }));
       } else {
         // Empty search query, fallback to regular query
+        total = await this.prisma.program.count({
+          where: whereConditions,
+        });
+
         programs = await this.prisma.program.findMany({
           where: whereConditions,
           include: {
@@ -95,10 +122,16 @@ export class DiscoveryService {
           orderBy: {
             releaseDate: 'desc',
           },
+          take: limit,
+          skip: offset,
         });
       }
     } else {
       // No search query, use regular indexed query
+      total = await this.prisma.program.count({
+        where: whereConditions,
+      });
+
       programs = await this.prisma.program.findMany({
         where: whereConditions,
         include: {
@@ -113,10 +146,18 @@ export class DiscoveryService {
         orderBy: {
           releaseDate: 'desc',
         },
+        take: limit,
+        skip: offset,
       });
     }
 
-    const result = programs.map(this.mapToDiscoveryDto);
+    const mappedPrograms = programs.map(this.mapToDiscoveryDto);
+    const result = new PaginatedResponse<ProgramDiscoveryDto>(
+      mappedPrograms,
+      page,
+      limit,
+      total,
+    );
 
     // Cache the result
     await this.cacheService.set(cacheKey, result, {
@@ -129,21 +170,24 @@ export class DiscoveryService {
 
   async browsePrograms(
     browseDto: BrowseProgramsDto,
-  ): Promise<ProgramDiscoveryDto[]> {
+  ): Promise<PaginatedResponse<ProgramDiscoveryDto>> {
     const cacheKey = this.cacheService.generateKey(
       CACHE_KEYS.DISCOVERY_BROWSE,
       browseDto,
     );
 
     // Try to get from cache first
-    const cachedResult = await this.cacheService.get<ProgramDiscoveryDto[]>(
-      cacheKey,
-      { logHitMiss: true },
-    );
+    const cachedResult = await this.cacheService.get<
+      PaginatedResponse<ProgramDiscoveryDto>
+    >(cacheKey, { logHitMiss: true });
 
     if (cachedResult) {
       return cachedResult;
     }
+
+    const page = browseDto.page || 1;
+    const limit = browseDto.limit || 20;
+    const offset = browseDto.offset;
 
     // If not in cache, fetch from database
     const whereConditions: any = {
@@ -162,6 +206,11 @@ export class DiscoveryService {
       whereConditions.mediaType = browseDto.mediaType;
     }
 
+    // Get total count for pagination
+    const total = await this.prisma.program.count({
+      where: whereConditions,
+    });
+
     const programs = await this.prisma.program.findMany({
       where: whereConditions,
       include: {
@@ -176,9 +225,17 @@ export class DiscoveryService {
       orderBy: {
         releaseDate: 'desc',
       },
+      take: limit,
+      skip: offset,
     });
 
-    const result = programs.map(this.mapToDiscoveryDto);
+    const mappedPrograms = programs.map(this.mapToDiscoveryDto);
+    const result = new PaginatedResponse<ProgramDiscoveryDto>(
+      mappedPrograms,
+      page,
+      limit,
+      total,
+    );
 
     // Cache the result
     await this.cacheService.set(cacheKey, result, {

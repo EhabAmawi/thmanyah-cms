@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CacheService, CACHE_KEYS } from '../cache';
 import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
+import { QueryProgramsDto } from './dto/query-programs.dto';
+import { PaginatedResponse } from '../common/dto/pagination.dto';
 import { Language, MediaType, Status, SourceType } from '@prisma/client';
 
 @Injectable()
@@ -46,6 +48,62 @@ export class ProgramsService {
         createdAt: 'desc',
       },
     });
+  }
+
+  async findAllPaginated(queryDto: QueryProgramsDto) {
+    const page = queryDto.page || 1;
+    const limit = queryDto.limit || 20;
+    const offset = queryDto.offset;
+
+    // Handle "recent" special case
+    if (queryDto.recent) {
+      const recentPrograms = await this.findRecent(queryDto.recent);
+      return new PaginatedResponse<any>(
+        recentPrograms,
+        1,
+        queryDto.recent,
+        recentPrograms.length,
+      );
+    }
+
+    // Build where conditions
+    const whereConditions: any = {};
+
+    if (queryDto.categoryId) {
+      whereConditions.categoryId = queryDto.categoryId;
+    }
+
+    if (queryDto.language) {
+      whereConditions.language = queryDto.language;
+    }
+
+    if (queryDto.mediaType) {
+      whereConditions.mediaType = queryDto.mediaType;
+    }
+
+    if (queryDto.status) {
+      whereConditions.status = queryDto.status;
+    }
+
+    // Get total count
+    const total = await this.prisma.program.count({
+      where: whereConditions,
+    });
+
+    // Get paginated results
+    const programs = await this.prisma.program.findMany({
+      where: whereConditions,
+      include: {
+        category: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: limit,
+      skip: offset,
+    });
+
+    return new PaginatedResponse<any>(programs, page, limit, total);
   }
 
   async findOne(id: number) {
@@ -172,7 +230,7 @@ export class ProgramsService {
   }
 
   // Enhanced methods that leverage composite indexes for better performance
-  
+
   async findPublishedPrograms(options?: {
     categoryId?: number;
     language?: Language;
@@ -213,19 +271,27 @@ export class ProgramsService {
     });
   }
 
-  async searchPrograms(query: string, options?: {
-    categoryId?: number;
-    language?: Language;
-    mediaType?: MediaType;
-    limit?: number;
-  }) {
+  async searchPrograms(
+    query: string,
+    options?: {
+      categoryId?: number;
+      language?: Language;
+      mediaType?: MediaType;
+      limit?: number;
+    },
+  ) {
     if (!query || query.trim().length === 0) {
       return this.findPublishedPrograms(options);
     }
 
     // Use PostgreSQL full-text search for better performance and relevance
-    const searchQuery = query.trim().replace(/[^\w\s]/gi, ' ').split(/\s+/).filter(word => word.length > 0).join(' & ');
-    
+    const searchQuery = query
+      .trim()
+      .replace(/[^\w\s]/gi, ' ')
+      .split(/\s+/)
+      .filter((word) => word.length > 0)
+      .join(' & ');
+
     if (!searchQuery) {
       return this.findPublishedPrograms(options);
     }
@@ -233,7 +299,7 @@ export class ProgramsService {
     // Build WHERE conditions for additional filters
     let additionalWhere = '';
     const params: any[] = [searchQuery];
-    
+
     if (options?.categoryId) {
       additionalWhere += ' AND p.category_id = $' + (params.length + 1);
       params.push(options.categoryId);
@@ -253,7 +319,8 @@ export class ProgramsService {
       params.push(options.limit);
     }
 
-    const programs = await this.prisma.$queryRawUnsafe(`
+    const programs = await this.prisma.$queryRawUnsafe(
+      `
       SELECT p.id, p.name, p.description, p.language, p.duration_sec as "durationSec", 
              p.release_date as "releaseDate", p.media_url as "mediaUrl", 
              p.media_type as "mediaType", p.status, p.created_at as "createdAt", 
@@ -275,7 +342,9 @@ export class ProgramsService {
         ) DESC,
         p.release_date DESC
       ${limitClause}
-    `, ...params) as any[];
+    `,
+      ...params,
+    );
 
     // Transform the raw result to match expected format
     return programs.map((program: any) => ({
@@ -288,7 +357,10 @@ export class ProgramsService {
     }));
   }
 
-  async getPublishedProgramsByCategory(categoryId: number, options?: { limit?: number; offset?: number }) {
+  async getPublishedProgramsByCategory(
+    categoryId: number,
+    options?: { limit?: number; offset?: number },
+  ) {
     return this.prisma.program.findMany({
       where: {
         status: Status.PUBLISHED,

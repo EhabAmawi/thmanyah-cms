@@ -10,7 +10,10 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { PublicRateLimit, AuthenticatedRateLimit } from '../common/decorators/throttle-config.decorator';
+import {
+  PublicRateLimit,
+  AuthenticatedRateLimit,
+} from '../common/decorators/throttle-config.decorator';
 
 @ApiTags('authentication')
 @Controller('auth')

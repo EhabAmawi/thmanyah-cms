@@ -71,7 +71,11 @@ describe('CacheService', () => {
 
       await service.set('test-key', testValue, { ttl: 300 });
 
-      expect(mockCacheManager.set).toHaveBeenCalledWith('test-key', testValue, 300);
+      expect(mockCacheManager.set).toHaveBeenCalledWith(
+        'test-key',
+        testValue,
+        300,
+      );
     });
 
     it('should handle errors gracefully', async () => {
@@ -108,10 +112,12 @@ describe('CacheService', () => {
     it.skip('should delete keys matching pattern', async () => {
       // Skip this test due to complex mock setup - functionality is tested in integration
       mockCacheManager.del.mockResolvedValue(undefined);
-      
+
       await service.delPattern('test:*');
 
-      expect(mockCacheManager.store.getClient().keys).toHaveBeenCalledWith('test:*');
+      expect(mockCacheManager.store.getClient().keys).toHaveBeenCalledWith(
+        'test:*',
+      );
       expect(mockCacheManager.del).toHaveBeenCalledTimes(2); // Called for each key returned
     });
 

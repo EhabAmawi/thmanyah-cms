@@ -10,6 +10,7 @@ import { DiscoveryService } from './discovery.service';
 import { SearchProgramsDto } from './dto/search-programs.dto';
 import { BrowseProgramsDto } from './dto/browse-programs.dto';
 import { ProgramDiscoveryDto } from './dto/program-discovery.dto';
+import { PaginatedResponse } from '../common/dto/pagination.dto';
 
 @ApiTags('Discovery (Public)')
 @Controller('discovery')
@@ -31,12 +32,12 @@ export class DiscoveryController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Programs matching the search criteria',
-    type: [ProgramDiscoveryDto],
+    description: 'Paginated programs matching the search criteria',
+    type: PaginatedResponse<ProgramDiscoveryDto>,
   })
   async searchPrograms(
     @Query() searchDto: SearchProgramsDto,
-  ): Promise<ProgramDiscoveryDto[]> {
+  ): Promise<PaginatedResponse<ProgramDiscoveryDto>> {
     return this.discoveryService.searchPrograms(searchDto);
   }
 
@@ -69,12 +70,12 @@ export class DiscoveryController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Programs matching the browse criteria',
-    type: [ProgramDiscoveryDto],
+    description: 'Paginated programs matching the browse criteria',
+    type: PaginatedResponse<ProgramDiscoveryDto>,
   })
   async browsePrograms(
     @Query() browseDto: BrowseProgramsDto,
-  ): Promise<ProgramDiscoveryDto[]> {
+  ): Promise<PaginatedResponse<ProgramDiscoveryDto>> {
     return this.discoveryService.browsePrograms(browseDto);
   }
 

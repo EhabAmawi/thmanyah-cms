@@ -89,7 +89,9 @@ describe('DiscoveryService', () => {
   describe('searchPrograms', () => {
     it('should search programs without query parameter (cache miss)', async () => {
       const searchDto: SearchProgramsDto = {};
-      mockPrismaService.program.findMany.mockResolvedValue([mockPublishedProgram]);
+      mockPrismaService.program.findMany.mockResolvedValue([
+        mockPublishedProgram,
+      ]);
 
       const result = await service.searchPrograms(searchDto);
 
@@ -131,23 +133,25 @@ describe('DiscoveryService', () => {
 
     it('should search programs with query parameter', async () => {
       const searchDto: SearchProgramsDto = { q: 'programming' };
-      const mockRawResult = [{
-        id: 1,
-        name: 'Introduction to Programming',
-        description: 'A comprehensive introduction to programming concepts',
-        language: 'ENGLISH',
-        durationSec: 3600,
-        releaseDate: new Date('2024-01-01'),
-        mediaUrl: 'https://example.com/media/program1.mp4',
-        mediaType: 'VIDEO',
-        status: 'PUBLISHED',
-        createdAt: new Date('2024-01-01'),
-        updatedAt: new Date('2024-01-01'),
-        categoryId: 1,
-        categoryName: 'Technology',
-        categoryDescription: 'Technology and programming courses',
-      }];
-      
+      const mockRawResult = [
+        {
+          id: 1,
+          name: 'Introduction to Programming',
+          description: 'A comprehensive introduction to programming concepts',
+          language: 'ENGLISH',
+          durationSec: 3600,
+          releaseDate: new Date('2024-01-01'),
+          mediaUrl: 'https://example.com/media/program1.mp4',
+          mediaType: 'VIDEO',
+          status: 'PUBLISHED',
+          createdAt: new Date('2024-01-01'),
+          updatedAt: new Date('2024-01-01'),
+          categoryId: 1,
+          categoryName: 'Technology',
+          categoryDescription: 'Technology and programming courses',
+        },
+      ];
+
       mockPrismaService.$queryRaw.mockResolvedValue(mockRawResult);
 
       const result = await service.searchPrograms(searchDto);
@@ -187,7 +191,9 @@ describe('DiscoveryService', () => {
   describe('browsePrograms', () => {
     it('should browse programs without filters (cache miss)', async () => {
       const browseDto: BrowseProgramsDto = {};
-      mockPrismaService.program.findMany.mockResolvedValue([mockPublishedProgram]);
+      mockPrismaService.program.findMany.mockResolvedValue([
+        mockPublishedProgram,
+      ]);
 
       const result = await service.browsePrograms(browseDto);
 
@@ -228,7 +234,9 @@ describe('DiscoveryService', () => {
 
     it('should browse programs with category filter', async () => {
       const browseDto: BrowseProgramsDto = { categoryId: 1 };
-      mockPrismaService.program.findMany.mockResolvedValue([mockPublishedProgram]);
+      mockPrismaService.program.findMany.mockResolvedValue([
+        mockPublishedProgram,
+      ]);
 
       const result = await service.browsePrograms(browseDto);
 
@@ -255,7 +263,9 @@ describe('DiscoveryService', () => {
 
     it('should browse programs with language filter', async () => {
       const browseDto: BrowseProgramsDto = { language: Language.ENGLISH };
-      mockPrismaService.program.findMany.mockResolvedValue([mockPublishedProgram]);
+      mockPrismaService.program.findMany.mockResolvedValue([
+        mockPublishedProgram,
+      ]);
 
       await service.browsePrograms(browseDto);
 
@@ -271,7 +281,9 @@ describe('DiscoveryService', () => {
 
     it('should browse programs with media type filter', async () => {
       const browseDto: BrowseProgramsDto = { mediaType: MediaType.VIDEO };
-      mockPrismaService.program.findMany.mockResolvedValue([mockPublishedProgram]);
+      mockPrismaService.program.findMany.mockResolvedValue([
+        mockPublishedProgram,
+      ]);
 
       await service.browsePrograms(browseDto);
 
@@ -291,7 +303,9 @@ describe('DiscoveryService', () => {
         language: Language.ENGLISH,
         mediaType: MediaType.VIDEO,
       };
-      mockPrismaService.program.findMany.mockResolvedValue([mockPublishedProgram]);
+      mockPrismaService.program.findMany.mockResolvedValue([
+        mockPublishedProgram,
+      ]);
 
       await service.browsePrograms(browseDto);
 
@@ -311,11 +325,16 @@ describe('DiscoveryService', () => {
   describe('getProgram', () => {
     it('should get program by id (cache miss)', async () => {
       const programId = 1;
-      mockPrismaService.program.findFirst.mockResolvedValue(mockPublishedProgram);
+      mockPrismaService.program.findFirst.mockResolvedValue(
+        mockPublishedProgram,
+      );
 
       const result = await service.getProgram(programId);
 
-      expect(cacheService.generateKey).toHaveBeenCalledWith(expect.any(String), { id: programId });
+      expect(cacheService.generateKey).toHaveBeenCalledWith(
+        expect.any(String),
+        { id: programId },
+      );
       expect(cacheService.get).toHaveBeenCalled();
       expect(prismaService.program.findFirst).toHaveBeenCalledWith({
         where: {
@@ -353,7 +372,9 @@ describe('DiscoveryService', () => {
       mockPrismaService.program.findFirst.mockResolvedValue(null);
 
       await expect(service.getProgram(programId)).rejects.toThrow(
-        new NotFoundException(`Published program with ID ${programId} not found`),
+        new NotFoundException(
+          `Published program with ID ${programId} not found`,
+        ),
       );
     });
 
@@ -361,12 +382,16 @@ describe('DiscoveryService', () => {
       const programId = 2;
       mockPrismaService.program.findFirst.mockResolvedValue(null);
 
-      await expect(service.getProgram(programId)).rejects.toThrow(NotFoundException);
+      await expect(service.getProgram(programId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should only return published programs', async () => {
       const programId = 1;
-      mockPrismaService.program.findFirst.mockResolvedValue(mockPublishedProgram);
+      mockPrismaService.program.findFirst.mockResolvedValue(
+        mockPublishedProgram,
+      );
 
       await service.getProgram(programId);
 

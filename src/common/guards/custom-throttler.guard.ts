@@ -1,15 +1,14 @@
 import { Injectable, ExecutionContext } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { Reflector } from '@nestjs/core';
-import { THROTTLE_CONFIG_KEY, ThrottleConfig } from '../decorators/throttle-config.decorator';
+import {
+  THROTTLE_CONFIG_KEY,
+  ThrottleConfig,
+} from '../decorators/throttle-config.decorator';
 
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
-  constructor(
-    options: any,
-    storageService: any,
-    reflector: Reflector,
-  ) {
+  constructor(options: any, storageService: any, reflector: Reflector) {
     super(options, storageService, reflector);
   }
 
@@ -18,14 +17,15 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     if (req.user?.id) {
       return Promise.resolve(`user-${req.user.id}`);
     }
-    
+
     // For public endpoints, use IP address for per-IP limits
-    const ip = req.ip || 
-               req.connection?.remoteAddress || 
-               req.socket?.remoteAddress ||
-               req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
-               'unknown';
-    
+    const ip =
+      req.ip ||
+      req.connection?.remoteAddress ||
+      req.socket?.remoteAddress ||
+      req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+      'unknown';
+
     return Promise.resolve(`ip-${ip}`);
   }
 
@@ -35,6 +35,8 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
       [context.getHandler(), context.getClass()],
     );
 
-    return customConfig?.message || 'Too many requests. Please try again later.';
+    return (
+      customConfig?.message || 'Too many requests. Please try again later.'
+    );
   }
 }

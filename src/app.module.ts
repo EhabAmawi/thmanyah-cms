@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ConfigModule } from './config';
+import { ConfigService } from './config';
 import { PrismaModule } from './prisma/prisma.module';
 import { EmployeesModule } from './employees/employees.module';
 import { AuthModule } from './auth/auth.module';
@@ -17,27 +18,28 @@ import { CacheModule } from './cache';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
+    ConfigModule,
     CacheModule,
-    ThrottlerModule.forRoot([
-      {
-        name: 'default',
-        ttl: parseInt(process.env.THROTTLE_TTL || '60') * 1000,
-        limit: parseInt(process.env.THROTTLE_LIMIT_PUBLIC || '100'),
-      },
-      {
-        name: 'authenticated',
-        ttl: parseInt(process.env.THROTTLE_TTL || '60') * 1000,
-        limit: parseInt(process.env.THROTTLE_LIMIT_AUTHENTICATED || '1000'),
-      },
-      {
-        name: 'search',
-        ttl: parseInt(process.env.THROTTLE_TTL || '60') * 1000,
-        limit: parseInt(process.env.THROTTLE_LIMIT_SEARCH || '30'),
-      },
-    ]),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => [
+        {
+          name: 'default',
+          ttl: configService.rateLimit.ttl * 1000,
+          limit: configService.rateLimit.limitPublic,
+        },
+        {
+          name: 'authenticated',
+          ttl: configService.rateLimit.ttl * 1000,
+          limit: configService.rateLimit.limitAuthenticated,
+        },
+        {
+          name: 'search',
+          ttl: configService.rateLimit.ttl * 1000,
+          limit: configService.rateLimit.limitSearch,
+        },
+      ],
+    }),
     PrismaModule,
     EmployeesModule,
     AuthModule,
