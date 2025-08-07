@@ -45,6 +45,7 @@ describe('DiscoveryModule', () => {
       findMany: jest.fn(),
       findFirst: jest.fn(),
     },
+    $queryRaw: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -92,45 +93,35 @@ describe('DiscoveryModule', () => {
   describe('Integration Tests', () => {
     it('should search programs through controller and service integration', async () => {
       const searchDto = { q: 'programming' };
-      mockPrismaService.program.findMany.mockResolvedValue([
-        mockPublishedProgram,
-      ]);
+      const mockRawResult = [{
+        id: 1,
+        name: 'Introduction to Programming',
+        description: 'A comprehensive introduction to programming concepts',
+        language: 'ENGLISH',
+        durationSec: 3600,
+        releaseDate: new Date('2024-01-01'),
+        mediaUrl: 'https://example.com/media/program1.mp4',
+        mediaType: 'VIDEO',
+        status: 'PUBLISHED',
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        categoryId: 1,
+        categoryName: 'Technology',
+        categoryDescription: 'Technology and programming courses',
+      }];
+      
+      mockPrismaService.$queryRaw.mockResolvedValue(mockRawResult);
 
       const result = await discoveryController.searchPrograms(searchDto);
 
-      expect(prismaService.program.findMany).toHaveBeenCalledWith({
-        where: {
-          status: Status.PUBLISHED,
-          OR: [
-            {
-              name: {
-                contains: 'programming',
-                mode: 'insensitive',
-              },
-            },
-            {
-              description: {
-                contains: 'programming',
-                mode: 'insensitive',
-              },
-            },
-          ],
-        },
-        include: {
-          category: {
-            select: {
-              id: true,
-              name: true,
-              description: true,
-            },
-          },
-        },
-        orderBy: {
-          releaseDate: 'desc',
-        },
-      });
+      expect(prismaService.$queryRaw).toHaveBeenCalled();
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('Introduction to Programming');
+      expect(result[0].category).toEqual({
+        id: 1,
+        name: 'Technology',
+        description: 'Technology and programming courses',
+      });
     });
 
     it('should browse programs through controller and service integration', async () => {

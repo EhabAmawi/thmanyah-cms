@@ -36,38 +36,85 @@ export class DiscoveryService {
       status: Status.PUBLISHED,
     };
 
+    let programs;
+    
     if (searchDto.q) {
-      whereConditions.OR = [
-        {
-          name: {
-            contains: searchDto.q,
-            mode: 'insensitive',
+      // Use PostgreSQL full-text search for better performance and relevance
+      // Escape the search query for safe use in SQL
+      const searchQuery = searchDto.q.trim().replace(/[^\w\s]/gi, ' ').split(/\s+/).filter(word => word.length > 0).join(' & ');
+      
+      if (searchQuery) {
+        // Use raw SQL with full-text search for optimal performance
+        programs = await this.prisma.$queryRaw<any[]>`
+          SELECT p.id, p.name, p.description, p.language, p.duration_sec as "durationSec", 
+                 p.release_date as "releaseDate", p.media_url as "mediaUrl", 
+                 p.media_type as "mediaType", p.status, p.created_at as "createdAt", 
+                 p.updated_at as "updatedAt",
+                 c.id as "categoryId", c.name as "categoryName", c.description as "categoryDescription"
+          FROM programs p
+          LEFT JOIN categories c ON p.category_id = c.id
+          WHERE p.status = 'PUBLISHED'
+            AND (
+              to_tsvector('english', p.name || ' ' || COALESCE(p.description, '')) 
+              @@ plainto_tsquery('english', ${searchQuery})
+            )
+          ORDER BY 
+            ts_rank(
+              to_tsvector('english', p.name || ' ' || COALESCE(p.description, '')), 
+              plainto_tsquery('english', ${searchQuery})
+            ) DESC,
+            p.release_date DESC
+        `;
+        
+        // Transform the raw result to match expected format
+        programs = programs.map((program: any) => ({
+          ...program,
+          category: {
+            id: program.categoryId,
+            name: program.categoryName,
+            description: program.categoryDescription,
+          },
+          // Remove the individual category fields
+          categoryId: undefined,
+          categoryName: undefined,
+          categoryDescription: undefined,
+        }));
+      } else {
+        // Empty search query, fallback to regular query
+        programs = await this.prisma.program.findMany({
+          where: whereConditions,
+          include: {
+            category: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+              },
+            },
+          },
+          orderBy: {
+            releaseDate: 'desc',
+          },
+        });
+      }
+    } else {
+      // No search query, use regular indexed query
+      programs = await this.prisma.program.findMany({
+        where: whereConditions,
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+            },
           },
         },
-        {
-          description: {
-            contains: searchDto.q,
-            mode: 'insensitive',
-          },
+        orderBy: {
+          releaseDate: 'desc',
         },
-      ];
+      });
     }
-
-    const programs = await this.prisma.program.findMany({
-      where: whereConditions,
-      include: {
-        category: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-          },
-        },
-      },
-      orderBy: {
-        releaseDate: 'desc',
-      },
-    });
 
     const result = programs.map(this.mapToDiscoveryDto);
 

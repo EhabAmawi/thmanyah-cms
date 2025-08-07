@@ -45,6 +45,7 @@ describe('DiscoveryService', () => {
       findMany: jest.fn(),
       findFirst: jest.fn(),
     },
+    $queryRaw: jest.fn(),
   };
 
   const mockCacheService = {
@@ -130,48 +131,40 @@ describe('DiscoveryService', () => {
 
     it('should search programs with query parameter', async () => {
       const searchDto: SearchProgramsDto = { q: 'programming' };
-      mockPrismaService.program.findMany.mockResolvedValue([mockPublishedProgram]);
+      const mockRawResult = [{
+        id: 1,
+        name: 'Introduction to Programming',
+        description: 'A comprehensive introduction to programming concepts',
+        language: 'ENGLISH',
+        durationSec: 3600,
+        releaseDate: new Date('2024-01-01'),
+        mediaUrl: 'https://example.com/media/program1.mp4',
+        mediaType: 'VIDEO',
+        status: 'PUBLISHED',
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        categoryId: 1,
+        categoryName: 'Technology',
+        categoryDescription: 'Technology and programming courses',
+      }];
+      
+      mockPrismaService.$queryRaw.mockResolvedValue(mockRawResult);
 
       const result = await service.searchPrograms(searchDto);
 
-      expect(prismaService.program.findMany).toHaveBeenCalledWith({
-        where: {
-          status: Status.PUBLISHED,
-          OR: [
-            {
-              name: {
-                contains: 'programming',
-                mode: 'insensitive',
-              },
-            },
-            {
-              description: {
-                contains: 'programming',
-                mode: 'insensitive',
-              },
-            },
-          ],
-        },
-        include: {
-          category: {
-            select: {
-              id: true,
-              name: true,
-              description: true,
-            },
-          },
-        },
-        orderBy: {
-          releaseDate: 'desc',
-        },
-      });
+      expect(prismaService.$queryRaw).toHaveBeenCalled();
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('Introduction to Programming');
+      expect(result[0].category).toEqual({
+        id: 1,
+        name: 'Technology',
+        description: 'Technology and programming courses',
+      });
     });
 
     it('should return empty array when no programs match search', async () => {
       const searchDto: SearchProgramsDto = { q: 'nonexistent' };
-      mockPrismaService.program.findMany.mockResolvedValue([]);
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
 
       const result = await service.searchPrograms(searchDto);
 
@@ -180,17 +173,14 @@ describe('DiscoveryService', () => {
 
     it('should only return published programs in search', async () => {
       const searchDto: SearchProgramsDto = { q: 'program' };
-      mockPrismaService.program.findMany.mockResolvedValue([mockPublishedProgram]);
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
 
       await service.searchPrograms(searchDto);
 
-      expect(prismaService.program.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            status: Status.PUBLISHED,
-          }),
-        }),
-      );
+      expect(prismaService.$queryRaw).toHaveBeenCalled();
+      // The SQL query includes WHERE p.status = 'PUBLISHED'
+      const queryCall = mockPrismaService.$queryRaw.mock.calls[0];
+      expect(queryCall[0].raw[0]).toContain("WHERE p.status = 'PUBLISHED'");
     });
   });
 

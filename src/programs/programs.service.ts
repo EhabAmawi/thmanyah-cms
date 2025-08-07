@@ -171,6 +171,167 @@ export class ProgramsService {
     });
   }
 
+  // Enhanced methods that leverage composite indexes for better performance
+  
+  async findPublishedPrograms(options?: {
+    categoryId?: number;
+    language?: Language;
+    mediaType?: MediaType;
+    limit?: number;
+    offset?: number;
+  }) {
+    const where: any = {
+      status: Status.PUBLISHED,
+    };
+
+    if (options?.categoryId) {
+      where.categoryId = options.categoryId;
+    }
+    if (options?.language) {
+      where.language = options.language;
+    }
+    if (options?.mediaType) {
+      where.mediaType = options.mediaType;
+    }
+
+    return this.prisma.program.findMany({
+      where,
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
+      },
+      orderBy: {
+        releaseDate: 'desc',
+      },
+      take: options?.limit,
+      skip: options?.offset,
+    });
+  }
+
+  async searchPrograms(query: string, options?: {
+    categoryId?: number;
+    language?: Language;
+    mediaType?: MediaType;
+    limit?: number;
+  }) {
+    if (!query || query.trim().length === 0) {
+      return this.findPublishedPrograms(options);
+    }
+
+    // Use PostgreSQL full-text search for better performance and relevance
+    const searchQuery = query.trim().replace(/[^\w\s]/gi, ' ').split(/\s+/).filter(word => word.length > 0).join(' & ');
+    
+    if (!searchQuery) {
+      return this.findPublishedPrograms(options);
+    }
+
+    // Build WHERE conditions for additional filters
+    let additionalWhere = '';
+    const params: any[] = [searchQuery];
+    
+    if (options?.categoryId) {
+      additionalWhere += ' AND p.category_id = $' + (params.length + 1);
+      params.push(options.categoryId);
+    }
+    if (options?.language) {
+      additionalWhere += ' AND p.language = $' + (params.length + 1);
+      params.push(options.language);
+    }
+    if (options?.mediaType) {
+      additionalWhere += ' AND p.media_type = $' + (params.length + 1);
+      params.push(options.mediaType);
+    }
+
+    let limitClause = '';
+    if (options?.limit) {
+      limitClause = ' LIMIT $' + (params.length + 1);
+      params.push(options.limit);
+    }
+
+    const programs = await this.prisma.$queryRawUnsafe(`
+      SELECT p.id, p.name, p.description, p.language, p.duration_sec as "durationSec", 
+             p.release_date as "releaseDate", p.media_url as "mediaUrl", 
+             p.media_type as "mediaType", p.status, p.created_at as "createdAt", 
+             p.updated_at as "updatedAt", p.source_type as "sourceType",
+             p.source_url as "sourceUrl", p.external_id as "externalId",
+             c.id as "categoryId", c.name as "categoryName", c.description as "categoryDescription"
+      FROM programs p
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE p.status = 'PUBLISHED'
+        AND (
+          to_tsvector('english', p.name || ' ' || COALESCE(p.description, '')) 
+          @@ plainto_tsquery('english', $1)
+        )
+        ${additionalWhere}
+      ORDER BY 
+        ts_rank(
+          to_tsvector('english', p.name || ' ' || COALESCE(p.description, '')), 
+          plainto_tsquery('english', $1)
+        ) DESC,
+        p.release_date DESC
+      ${limitClause}
+    `, ...params) as any[];
+
+    // Transform the raw result to match expected format
+    return programs.map((program: any) => ({
+      ...program,
+      category: {
+        id: program.categoryId,
+        name: program.categoryName,
+        description: program.categoryDescription,
+      },
+    }));
+  }
+
+  async getPublishedProgramsByCategory(categoryId: number, options?: { limit?: number; offset?: number }) {
+    return this.prisma.program.findMany({
+      where: {
+        status: Status.PUBLISHED,
+        categoryId,
+      },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
+      },
+      orderBy: {
+        releaseDate: 'desc',
+      },
+      take: options?.limit,
+      skip: options?.offset,
+    });
+  }
+
+  async getRecentPublishedPrograms(limit: number = 10) {
+    return this.prisma.program.findMany({
+      where: {
+        status: Status.PUBLISHED,
+      },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
+      },
+      orderBy: {
+        releaseDate: 'desc',
+      },
+      take: limit,
+    });
+  }
+
   private async invalidateDiscoveryCache() {
     // Invalidate all discovery cache keys (search, browse)
     await this.cacheService.delPattern(`${CACHE_KEYS.DISCOVERY_SEARCH}:*`);

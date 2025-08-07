@@ -46,6 +46,7 @@ describe('ProgramsService', () => {
       update: jest.fn(),
       delete: jest.fn(),
     },
+    $queryRawUnsafe: jest.fn(),
   };
 
   const mockCacheService = {
@@ -394,6 +395,125 @@ describe('ProgramsService', () => {
         },
       });
       expect(result).toEqual(programs);
+    });
+  });
+
+  describe('Enhanced search methods', () => {
+    describe('findPublishedPrograms', () => {
+      it('should find published programs with filters', async () => {
+        const programs = [{ ...mockProgram, status: Status.PUBLISHED }];
+        mockPrismaService.program.findMany.mockResolvedValue(programs);
+
+        const result = await service.findPublishedPrograms({
+          categoryId: 1,
+          language: Language.ENGLISH,
+          mediaType: MediaType.VIDEO,
+          limit: 10,
+        });
+
+        expect(mockPrismaService.program.findMany).toHaveBeenCalledWith({
+          where: {
+            status: Status.PUBLISHED,
+            categoryId: 1,
+            language: Language.ENGLISH,
+            mediaType: MediaType.VIDEO,
+          },
+          include: {
+            category: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+              },
+            },
+          },
+          orderBy: {
+            releaseDate: 'desc',
+          },
+          take: 10,
+          skip: undefined,
+        });
+        expect(result).toEqual(programs);
+      });
+    });
+
+    describe('searchPrograms', () => {
+      it('should search programs using full-text search', async () => {
+        const mockRawResult = [{
+          id: 1,
+          name: 'Introduction to Programming',
+          description: 'A comprehensive introduction to programming concepts',
+          language: 'ENGLISH',
+          durationSec: 3600,
+          releaseDate: new Date('2024-01-01'),
+          mediaUrl: 'https://example.com/media/program1.mp4',
+          mediaType: 'VIDEO',
+          status: 'PUBLISHED',
+          createdAt: new Date('2024-01-01'),
+          updatedAt: new Date('2024-01-01'),
+          sourceType: 'MANUAL',
+          sourceUrl: null,
+          externalId: null,
+          categoryId: 1,
+          categoryName: 'Programming',
+          categoryDescription: 'Programming courses',
+        }];
+        
+        mockPrismaService.$queryRawUnsafe.mockResolvedValue(mockRawResult);
+
+        const result = await service.searchPrograms('programming', {
+          categoryId: 1,
+          limit: 10,
+        });
+
+        expect(mockPrismaService.$queryRawUnsafe).toHaveBeenCalled();
+        expect(result).toHaveLength(1);
+        expect(result[0].name).toBe('Introduction to Programming');
+        expect(result[0].category).toEqual({
+          id: 1,
+          name: 'Programming',
+          description: 'Programming courses',
+        });
+      });
+
+      it('should fallback to regular query for empty search', async () => {
+        const programs = [{ ...mockProgram, status: Status.PUBLISHED }];
+        mockPrismaService.program.findMany.mockResolvedValue(programs);
+
+        const result = await service.searchPrograms('', { categoryId: 1 });
+
+        expect(mockPrismaService.program.findMany).toHaveBeenCalled();
+        expect(mockPrismaService.$queryRawUnsafe).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('getRecentPublishedPrograms', () => {
+      it('should get recent published programs', async () => {
+        const programs = [{ ...mockProgram, status: Status.PUBLISHED }];
+        mockPrismaService.program.findMany.mockResolvedValue(programs);
+
+        const result = await service.getRecentPublishedPrograms(5);
+
+        expect(mockPrismaService.program.findMany).toHaveBeenCalledWith({
+          where: {
+            status: Status.PUBLISHED,
+          },
+          include: {
+            category: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+              },
+            },
+          },
+          orderBy: {
+            releaseDate: 'desc',
+          },
+          take: 5,
+        });
+        expect(result).toEqual(programs);
+      });
     });
   });
 });
