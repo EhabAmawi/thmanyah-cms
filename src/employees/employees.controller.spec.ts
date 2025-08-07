@@ -4,6 +4,7 @@ import { EmployeesController } from './employees.controller';
 import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import { Decimal } from '@prisma/client/runtime/library';
 
 describe('EmployeesController', () => {
   let controller: EmployeesController;
@@ -17,7 +18,7 @@ describe('EmployeesController', () => {
     phone: '+1234567890',
     department: 'IT',
     position: 'Developer',
-    salary: 50000,
+    salary: new Decimal(50000),
     hireDate: new Date('2023-01-01'),
     isActive: true,
     createdAt: new Date('2023-01-01'),
@@ -59,6 +60,7 @@ describe('EmployeesController', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'john.doe@example.com',
+        password: 'password123',
         phone: '+1234567890',
         department: 'IT',
         position: 'Developer',

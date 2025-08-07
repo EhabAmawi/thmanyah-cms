@@ -14,21 +14,23 @@ describe('ImportController', () => {
     success: true,
     importedCount: 1,
     duplicatesSkipped: 0,
-    imported: [{
-      id: 1,
-      name: 'Test Video',
-      description: 'Test Description',
-      language: 'ENGLISH' as any,
-      durationSec: 300,
-      releaseDate: new Date('2023-01-01'),
-      mediaUrl: 'https://www.youtube.com/watch?v=test123',
-      mediaType: 'VIDEO' as any,
-      sourceType: 'YOUTUBE' as any,
-      sourceUrl: 'https://www.youtube.com/watch?v=test123',
-      externalId: 'test123'
-    }],
+    imported: [
+      {
+        id: 1,
+        name: 'Test Video',
+        description: 'Test Description',
+        language: 'ENGLISH' as any,
+        durationSec: 300,
+        releaseDate: new Date('2023-01-01'),
+        mediaUrl: 'https://www.youtube.com/watch?v=test123',
+        mediaType: 'VIDEO' as any,
+        sourceType: 'YOUTUBE' as any,
+        sourceUrl: 'https://www.youtube.com/watch?v=test123',
+        externalId: 'test123',
+      },
+    ],
     errors: [],
-    message: 'Video imported successfully'
+    message: 'Video imported successfully',
   };
 
   beforeEach(async () => {
@@ -47,9 +49,9 @@ describe('ImportController', () => {
         },
       ],
     })
-    .overrideGuard(JwtAuthGuard)
-    .useValue({ canActivate: jest.fn().mockReturnValue(true) })
-    .compile();
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .compile();
 
     controller = module.get<ImportController>(ImportController);
     importService = module.get(ImportService);
@@ -62,7 +64,7 @@ describe('ImportController', () => {
   describe('importYouTubeVideo', () => {
     const importVideoDto = {
       url: 'https://www.youtube.com/watch?v=test123',
-      categoryId: 'cat-123'
+      categoryId: 'cat-123',
     };
 
     it('should successfully import YouTube video', async () => {
@@ -81,7 +83,7 @@ describe('ImportController', () => {
         importedCount: 0,
         imported: [],
         errors: ['Invalid YouTube URL'],
-        message: 'Failed to import video'
+        message: 'Failed to import video',
       };
       importService.importVideo.mockResolvedValue(errorResult);
 
@@ -94,7 +96,9 @@ describe('ImportController', () => {
     it('should propagate service exceptions', async () => {
       importService.importVideo.mockRejectedValue(new Error('Service error'));
 
-      await expect(controller.importYouTubeVideo(importVideoDto)).rejects.toThrow('Service error');
+      await expect(
+        controller.importYouTubeVideo(importVideoDto),
+      ).rejects.toThrow('Service error');
     });
   });
 
@@ -102,22 +106,29 @@ describe('ImportController', () => {
     const importChannelDto = {
       channelId: 'UC_test_channel',
       limit: 5,
-      categoryId: 'cat-123'
+      categoryId: 'cat-123',
     };
 
     it('should successfully import YouTube channel', async () => {
       const channelResult = {
         ...mockImportResult,
         importedCount: 3,
-        imported: [mockImportResult.imported[0], mockImportResult.imported[0], mockImportResult.imported[0]],
-        message: 'Successfully imported 3 videos, skipped 0 duplicates'
+        imported: [
+          mockImportResult.imported[0],
+          mockImportResult.imported[0],
+          mockImportResult.imported[0],
+        ],
+        message: 'Successfully imported 3 videos, skipped 0 duplicates',
       };
       importService.importChannel.mockResolvedValue(channelResult);
 
       const result = await controller.importYouTubeChannel(importChannelDto);
 
       expect(result).toEqual(channelResult);
-      expect(importService.importChannel).toHaveBeenCalledWith(SourceType.YOUTUBE, importChannelDto);
+      expect(importService.importChannel).toHaveBeenCalledWith(
+        SourceType.YOUTUBE,
+        importChannelDto,
+      );
     });
 
     it('should handle channel import with duplicates', async () => {
@@ -126,9 +137,12 @@ describe('ImportController', () => {
         importedCount: 2,
         duplicatesSkipped: 1,
         errors: ['Content already exists'],
-        message: 'Successfully imported 2 videos, skipped 1 duplicates, encountered 1 errors'
+        message:
+          'Successfully imported 2 videos, skipped 1 duplicates, encountered 1 errors',
       };
-      importService.importChannel.mockResolvedValue(channelWithDuplicatesResult);
+      importService.importChannel.mockResolvedValue(
+        channelWithDuplicatesResult,
+      );
 
       const result = await controller.importYouTubeChannel(importChannelDto);
 
@@ -136,9 +150,13 @@ describe('ImportController', () => {
     });
 
     it('should handle service error', async () => {
-      importService.importChannel.mockRejectedValue(new BadRequestException('Invalid channel ID'));
+      importService.importChannel.mockRejectedValue(
+        new BadRequestException('Invalid channel ID'),
+      );
 
-      await expect(controller.importYouTubeChannel(importChannelDto)).rejects.toThrow('Invalid channel ID');
+      await expect(
+        controller.importYouTubeChannel(importChannelDto),
+      ).rejects.toThrow('Invalid channel ID');
     });
   });
 
@@ -146,7 +164,7 @@ describe('ImportController', () => {
     const importBySourceDto = {
       sourceType: SourceType.YOUTUBE,
       url: 'https://www.youtube.com/watch?v=test123',
-      categoryId: 'cat-123'
+      categoryId: 'cat-123',
     };
 
     it('should successfully import by source type', async () => {
@@ -155,7 +173,9 @@ describe('ImportController', () => {
       const result = await controller.importBySourceType(importBySourceDto);
 
       expect(result).toEqual(mockImportResult);
-      expect(importService.importBySourceType).toHaveBeenCalledWith(importBySourceDto);
+      expect(importService.importBySourceType).toHaveBeenCalledWith(
+        importBySourceDto,
+      );
     });
 
     it('should handle unsupported source type error', async () => {
@@ -164,30 +184,34 @@ describe('ImportController', () => {
         success: false,
         importedCount: 0,
         imported: [],
-        errors: ['Adapter for source type \'VIMEO\' not found'],
-        message: 'Failed to import content'
+        errors: ["Adapter for source type 'VIMEO' not found"],
+        message: 'Failed to import content',
       };
       importService.importBySourceType.mockResolvedValue(errorResult);
 
       const result = await controller.importBySourceType({
         ...importBySourceDto,
-        sourceType: SourceType.VIMEO
+        sourceType: SourceType.VIMEO,
       });
 
       expect(result).toEqual(errorResult);
     });
 
     it('should handle service exception', async () => {
-      importService.importBySourceType.mockRejectedValue(new BadRequestException('Invalid source type'));
+      importService.importBySourceType.mockRejectedValue(
+        new BadRequestException('Invalid source type'),
+      );
 
-      await expect(controller.importBySourceType(importBySourceDto)).rejects.toThrow('Invalid source type');
+      await expect(
+        controller.importBySourceType(importBySourceDto),
+      ).rejects.toThrow('Invalid source type');
     });
   });
 
   describe('importVideo', () => {
     const importVideoDto = {
       url: 'https://www.youtube.com/watch?v=test123',
-      categoryId: 'cat-123'
+      categoryId: 'cat-123',
     };
 
     it('should successfully import video with auto-detection', async () => {
@@ -206,13 +230,13 @@ describe('ImportController', () => {
         importedCount: 0,
         imported: [],
         errors: ['No adapter found for URL: https://unsupported.com/video'],
-        message: 'Failed to import video'
+        message: 'Failed to import video',
       };
       importService.importVideo.mockResolvedValue(errorResult);
 
       const result = await controller.importVideo({
         url: 'https://unsupported.com/video',
-        categoryId: 'cat-123'
+        categoryId: 'cat-123',
       });
 
       expect(result).toEqual(errorResult);
@@ -227,7 +251,7 @@ describe('ImportController', () => {
       const result = await controller.getSupportedSources();
 
       expect(result).toEqual({
-        supportedSources: supportedTypes
+        supportedSources: supportedTypes,
       });
       expect(importService.getSupportedSourceTypes).toHaveBeenCalled();
     });
@@ -238,21 +262,25 @@ describe('ImportController', () => {
       const result = await controller.getSupportedSources();
 
       expect(result).toEqual({
-        supportedSources: []
+        supportedSources: [],
       });
     });
 
     it('should handle service error', async () => {
-      importService.getSupportedSourceTypes.mockRejectedValue(new Error('Service error'));
+      importService.getSupportedSourceTypes.mockRejectedValue(
+        new Error('Service error'),
+      );
 
-      await expect(controller.getSupportedSources()).rejects.toThrow('Service error');
+      await expect(controller.getSupportedSources()).rejects.toThrow(
+        'Service error',
+      );
     });
   });
 
   describe('checkDuplicate', () => {
     const checkDuplicateBody = {
       externalId: 'test123',
-      sourceType: SourceType.YOUTUBE
+      sourceType: SourceType.YOUTUBE,
     };
 
     it('should return duplicate exists', async () => {
@@ -263,9 +291,12 @@ describe('ImportController', () => {
       expect(result).toEqual({
         exists: true,
         externalId: 'test123',
-        sourceType: SourceType.YOUTUBE
+        sourceType: SourceType.YOUTUBE,
       });
-      expect(importService.checkDuplicate).toHaveBeenCalledWith('test123', SourceType.YOUTUBE);
+      expect(importService.checkDuplicate).toHaveBeenCalledWith(
+        'test123',
+        SourceType.YOUTUBE,
+      );
     });
 
     it('should return duplicate does not exist', async () => {
@@ -276,40 +307,59 @@ describe('ImportController', () => {
       expect(result).toEqual({
         exists: false,
         externalId: 'test123',
-        sourceType: SourceType.YOUTUBE
+        sourceType: SourceType.YOUTUBE,
       });
-      expect(importService.checkDuplicate).toHaveBeenCalledWith('test123', SourceType.YOUTUBE);
+      expect(importService.checkDuplicate).toHaveBeenCalledWith(
+        'test123',
+        SourceType.YOUTUBE,
+      );
     });
 
     it('should throw BadRequestException when externalId is missing', async () => {
       const invalidBody = {
-        sourceType: SourceType.YOUTUBE
+        sourceType: SourceType.YOUTUBE,
       } as any;
 
-      await expect(controller.checkDuplicate(invalidBody)).rejects.toThrow(BadRequestException);
-      await expect(controller.checkDuplicate(invalidBody)).rejects.toThrow('externalId and sourceType are required');
+      await expect(controller.checkDuplicate(invalidBody)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(controller.checkDuplicate(invalidBody)).rejects.toThrow(
+        'externalId and sourceType are required',
+      );
     });
 
     it('should throw BadRequestException when sourceType is missing', async () => {
       const invalidBody = {
-        externalId: 'test123'
+        externalId: 'test123',
       } as any;
 
-      await expect(controller.checkDuplicate(invalidBody)).rejects.toThrow(BadRequestException);
-      await expect(controller.checkDuplicate(invalidBody)).rejects.toThrow('externalId and sourceType are required');
+      await expect(controller.checkDuplicate(invalidBody)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(controller.checkDuplicate(invalidBody)).rejects.toThrow(
+        'externalId and sourceType are required',
+      );
     });
 
     it('should throw BadRequestException when both fields are missing', async () => {
       const invalidBody = {} as any;
 
-      await expect(controller.checkDuplicate(invalidBody)).rejects.toThrow(BadRequestException);
-      await expect(controller.checkDuplicate(invalidBody)).rejects.toThrow('externalId and sourceType are required');
+      await expect(controller.checkDuplicate(invalidBody)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(controller.checkDuplicate(invalidBody)).rejects.toThrow(
+        'externalId and sourceType are required',
+      );
     });
 
     it('should handle service error', async () => {
-      importService.checkDuplicate.mockRejectedValue(new Error('Database error'));
+      importService.checkDuplicate.mockRejectedValue(
+        new Error('Database error'),
+      );
 
-      await expect(controller.checkDuplicate(checkDuplicateBody)).rejects.toThrow('Database error');
+      await expect(
+        controller.checkDuplicate(checkDuplicateBody),
+      ).rejects.toThrow('Database error');
     });
   });
 
@@ -322,7 +372,7 @@ describe('ImportController', () => {
         importedCount: 0,
         imported: [],
         errors: ['Invalid URL'],
-        message: 'Failed to import video'
+        message: 'Failed to import video',
       };
       importService.importVideo.mockResolvedValue(errorResult);
 
@@ -339,7 +389,7 @@ describe('ImportController', () => {
         importedCount: 0,
         imported: [],
         errors: ['No adapter found for URL: not-a-url'],
-        message: 'Failed to import video'
+        message: 'Failed to import video',
       };
       importService.importVideo.mockResolvedValue(errorResult);
 
@@ -352,7 +402,7 @@ describe('ImportController', () => {
       const longLimitDto = {
         channelId: 'UC_test',
         limit: 1000, // This should be validated by DTOs
-        categoryId: 'cat-123'
+        categoryId: 'cat-123',
       };
 
       const errorResult = {
@@ -361,7 +411,7 @@ describe('ImportController', () => {
         importedCount: 0,
         imported: [],
         errors: ['Limit exceeds maximum allowed'],
-        message: 'Failed to import channel'
+        message: 'Failed to import channel',
       };
       importService.importChannel.mockResolvedValue(errorResult);
 

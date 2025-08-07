@@ -4,6 +4,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
+import { Decimal } from '@prisma/client/runtime/library';
 
 // Mock bcrypt
 jest.mock('bcryptjs', () => ({
@@ -25,7 +26,7 @@ describe('AuthService', () => {
     phone: '+1234567890',
     department: 'IT',
     position: 'Developer',
-    salary: 50000,
+    salary: new Decimal(50000),
     hireDate: new Date('2023-01-01'),
     isActive: true,
     createdAt: new Date('2023-01-01'),
@@ -40,7 +41,7 @@ describe('AuthService', () => {
     phone: '+1234567890',
     department: 'IT',
     position: 'Developer',
-    salary: 50000,
+    salary: new Decimal(50000),
     hireDate: new Date('2023-01-01'),
     isActive: true,
     createdAt: new Date('2023-01-01'),

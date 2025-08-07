@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import request from 'supertest';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from '../src/app.module';
+import { PrismaExceptionFilter } from '../src/common/filters/prisma-exception.filter';
+import { PrismaErrorMapperService } from '../src/common/services/prisma-error-mapper.service';
 
 describe('Swagger Integration (e2e)', () => {
   let app: INestApplication;
@@ -12,12 +15,8 @@ describe('Swagger Integration (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    
+
     // Apply the same configuration as in main.ts
-    const { ValidationPipe } = await import('@nestjs/common');
-    const { PrismaExceptionFilter } = await import('../src/common/filters/prisma-exception.filter');
-    const { PrismaErrorMapperService } = await import('../src/common/services/prisma-error-mapper.service');
-    const { DocumentBuilder, SwaggerModule } = await import('@nestjs/swagger');
 
     app.useGlobalPipes(
       new ValidationPipe({
@@ -33,7 +32,9 @@ describe('Swagger Integration (e2e)', () => {
     // Swagger configuration (same as main.ts)
     const config = new DocumentBuilder()
       .setTitle('Thmanyah CMS API')
-      .setDescription('Content Management System API for Thmanyah with JWT Authentication')
+      .setDescription(
+        'Content Management System API for Thmanyah with JWT Authentication',
+      )
       .setVersion('1.0')
       .addServer('http://localhost:3000', 'Local development server')
       .addBearerAuth(
@@ -47,11 +48,26 @@ describe('Swagger Integration (e2e)', () => {
         },
         'JWT-auth',
       )
-      .addTag('authentication', 'Authentication endpoints for login, refresh, and profile')
-      .addTag('employees', 'Employee management endpoints (requires authentication)')
-      .addTag('categories', 'Category management endpoints (requires authentication)')
-      .addTag('programs', 'Program management endpoints (requires authentication)')
-      .addTag('import', 'Content import endpoints from external sources like YouTube (requires authentication)')
+      .addTag(
+        'authentication',
+        'Authentication endpoints for login, refresh, and profile',
+      )
+      .addTag(
+        'employees',
+        'Employee management endpoints (requires authentication)',
+      )
+      .addTag(
+        'categories',
+        'Category management endpoints (requires authentication)',
+      )
+      .addTag(
+        'programs',
+        'Program management endpoints (requires authentication)',
+      )
+      .addTag(
+        'import',
+        'Content import endpoints from external sources like YouTube (requires authentication)',
+      )
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
@@ -115,14 +131,15 @@ describe('Swagger Integration (e2e)', () => {
         .expect(200);
 
       const spec = response.body;
-      
+
       expect(spec.tags).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             name: 'import',
-            description: 'Content import endpoints from external sources like YouTube (requires authentication)'
-          })
-        ])
+            description:
+              'Content import endpoints from external sources like YouTube (requires authentication)',
+          }),
+        ]),
       );
     });
 
@@ -132,13 +149,13 @@ describe('Swagger Integration (e2e)', () => {
         .expect(200);
 
       const spec = response.body;
-      
+
       // Check security definitions
       expect(spec.components.securitySchemes).toHaveProperty('JWT-auth');
       expect(spec.components.securitySchemes['JWT-auth']).toMatchObject({
         type: 'http',
         scheme: 'bearer',
-        bearerFormat: 'JWT'
+        bearerFormat: 'JWT',
       });
 
       // Check that import endpoints have security requirements
@@ -189,9 +206,15 @@ describe('Swagger Integration (e2e)', () => {
       expect(importVideoEndpoint.responses).toHaveProperty('400');
       expect(importVideoEndpoint.responses).toHaveProperty('401');
 
-      expect(importVideoEndpoint.responses['200'].description).toBe('Video imported successfully');
-      expect(importVideoEndpoint.responses['400'].description).toBe('Invalid YouTube URL or video not found');
-      expect(importVideoEndpoint.responses['401'].description).toBe('Unauthorized - Valid JWT token required');
+      expect(importVideoEndpoint.responses['200'].description).toBe(
+        'Video imported successfully',
+      );
+      expect(importVideoEndpoint.responses['400'].description).toBe(
+        'Invalid YouTube URL or video not found',
+      );
+      expect(importVideoEndpoint.responses['401'].description).toBe(
+        'Unauthorized - Valid JWT token required',
+      );
     });
 
     it('should document operation summaries and descriptions', async () => {
@@ -200,18 +223,28 @@ describe('Swagger Integration (e2e)', () => {
         .expect(200);
 
       const spec = response.body;
-      
+
       const youtubeVideoEndpoint = spec.paths['/import/youtube/video'].post;
-      expect(youtubeVideoEndpoint.summary).toBe('Import single video from YouTube');
-      expect(youtubeVideoEndpoint.description).toBe('Imports a single video from YouTube by providing its URL');
+      expect(youtubeVideoEndpoint.summary).toBe(
+        'Import single video from YouTube',
+      );
+      expect(youtubeVideoEndpoint.description).toBe(
+        'Imports a single video from YouTube by providing its URL',
+      );
 
       const youtubeChannelEndpoint = spec.paths['/import/youtube/channel'].post;
-      expect(youtubeChannelEndpoint.summary).toBe('Import videos from YouTube channel');
-      expect(youtubeChannelEndpoint.description).toBe('Imports multiple videos from a YouTube channel with optional limit');
+      expect(youtubeChannelEndpoint.summary).toBe(
+        'Import videos from YouTube channel',
+      );
+      expect(youtubeChannelEndpoint.description).toBe(
+        'Imports multiple videos from a YouTube channel with optional limit',
+      );
 
       const sourcesEndpoint = spec.paths['/import/sources'].get;
       expect(sourcesEndpoint.summary).toBe('Get supported source types');
-      expect(sourcesEndpoint.description).toBe('Returns a list of all supported import source types');
+      expect(sourcesEndpoint.description).toBe(
+        'Returns a list of all supported import source types',
+      );
     });
 
     it('should include enum values in schema documentation', async () => {
@@ -224,7 +257,13 @@ describe('Swagger Integration (e2e)', () => {
 
       // Check SourceType enum
       expect(components).toHaveProperty('SourceType');
-      expect(components.SourceType.enum).toEqual(['MANUAL', 'YOUTUBE', 'VIMEO', 'RSS', 'API']);
+      expect(components.SourceType.enum).toEqual([
+        'MANUAL',
+        'YOUTUBE',
+        'VIMEO',
+        'RSS',
+        'API',
+      ]);
 
       // Check Language enum
       expect(components).toHaveProperty('Language');
@@ -245,14 +284,20 @@ describe('Swagger Integration (e2e)', () => {
 
       // Check that ImportVideoDto has examples
       const importVideoDto = components.ImportVideoDto;
-      expect(importVideoDto.properties.url.example).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-      expect(importVideoDto.properties.categoryId.example).toBe('550e8400-e29b-41d4-a716-446655440000');
+      expect(importVideoDto.properties.url.example).toBe(
+        'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      );
+      expect(importVideoDto.properties.categoryId.example).toBe(
+        '550e8400-e29b-41d4-a716-446655440000',
+      );
 
       // Check that ImportResultDto has examples
       const importResultDto = components.ImportResultDto;
       expect(importResultDto.properties.success.example).toBe(true);
       expect(importResultDto.properties.importedCount.example).toBe(5);
-      expect(importResultDto.properties.message.example).toBe('Successfully imported 5 items, skipped 2 duplicates');
+      expect(importResultDto.properties.message.example).toBe(
+        'Successfully imported 5 items, skipped 2 duplicates',
+      );
     });
   });
 
@@ -263,7 +308,7 @@ describe('Swagger Integration (e2e)', () => {
         .expect(200);
 
       const spec = response.body;
-      
+
       expect(spec.info.description).toContain('Content Management System API');
       expect(spec.info.description).toContain('Import videos from YouTube');
       expect(spec.info.description).toContain('Extensible adapter pattern');
@@ -285,12 +330,12 @@ describe('Swagger Integration (e2e)', () => {
         '/import/by-source',
         '/import/video',
         '/import/sources',
-        '/import/check-duplicate'
+        '/import/check-duplicate',
       ];
 
-      importEndpoints.forEach(endpoint => {
+      importEndpoints.forEach((endpoint) => {
         const methods = Object.keys(paths[endpoint]);
-        methods.forEach(method => {
+        methods.forEach((method) => {
           expect(paths[endpoint][method].tags).toContain('import');
         });
       });

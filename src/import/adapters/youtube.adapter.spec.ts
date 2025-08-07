@@ -1,4 +1,7 @@
-import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Language, MediaType, SourceType } from '@prisma/client';
 import { YouTubeAdapter } from './youtube.adapter';
@@ -27,31 +30,47 @@ describe('YouTubeAdapter', () => {
       expect(adapter.supportedDomains).toEqual([
         'youtube.com',
         'youtu.be',
-        'm.youtube.com'
+        'm.youtube.com',
       ]);
     });
   });
 
   describe('extractVideoId', () => {
     it('should extract video ID from standard YouTube URLs', () => {
-      expect(adapter.extractVideoId('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
-      expect(adapter.extractVideoId('http://youtube.com/watch?v=abc123')).toBe('abc123');
-      expect(adapter.extractVideoId('https://youtube.com/watch?v=test_-123')).toBe('test_-123');
+      expect(
+        adapter.extractVideoId('https://www.youtube.com/watch?v=dQw4w9WgXcQ'),
+      ).toBe('dQw4w9WgXcQ');
+      expect(adapter.extractVideoId('http://youtube.com/watch?v=abc123')).toBe(
+        'abc123',
+      );
+      expect(
+        adapter.extractVideoId('https://youtube.com/watch?v=test_-123'),
+      ).toBe('test_-123');
     });
 
     it('should extract video ID from youtu.be URLs', () => {
-      expect(adapter.extractVideoId('https://youtu.be/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+      expect(adapter.extractVideoId('https://youtu.be/dQw4w9WgXcQ')).toBe(
+        'dQw4w9WgXcQ',
+      );
       expect(adapter.extractVideoId('http://youtu.be/abc123')).toBe('abc123');
     });
 
     it('should extract video ID from embed URLs', () => {
-      expect(adapter.extractVideoId('https://www.youtube.com/embed/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
-      expect(adapter.extractVideoId('https://youtube.com/embed/abc123')).toBe('abc123');
+      expect(
+        adapter.extractVideoId('https://www.youtube.com/embed/dQw4w9WgXcQ'),
+      ).toBe('dQw4w9WgXcQ');
+      expect(adapter.extractVideoId('https://youtube.com/embed/abc123')).toBe(
+        'abc123',
+      );
     });
 
     it('should extract video ID from /v/ URLs', () => {
-      expect(adapter.extractVideoId('https://www.youtube.com/v/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
-      expect(adapter.extractVideoId('https://youtube.com/v/abc123')).toBe('abc123');
+      expect(
+        adapter.extractVideoId('https://www.youtube.com/v/dQw4w9WgXcQ'),
+      ).toBe('dQw4w9WgXcQ');
+      expect(adapter.extractVideoId('https://youtube.com/v/abc123')).toBe(
+        'abc123',
+      );
     });
 
     it('should return null for invalid URLs', () => {
@@ -64,9 +83,13 @@ describe('YouTubeAdapter', () => {
 
   describe('validateUrl', () => {
     it('should validate YouTube URLs with extractable video IDs', () => {
-      expect(adapter.validateUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe(true);
+      expect(
+        adapter.validateUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ'),
+      ).toBe(true);
       expect(adapter.validateUrl('https://youtu.be/abc123')).toBe(true);
-      expect(adapter.validateUrl('https://m.youtube.com/watch?v=test123')).toBe(true);
+      expect(adapter.validateUrl('https://m.youtube.com/watch?v=test123')).toBe(
+        true,
+      );
     });
 
     it('should reject URLs from unsupported domains', () => {
@@ -76,7 +99,9 @@ describe('YouTubeAdapter', () => {
 
     it('should reject YouTube URLs without valid video IDs', () => {
       expect(adapter.validateUrl('https://www.youtube.com/')).toBe(false);
-      expect(adapter.validateUrl('https://www.youtube.com/channel/UC123')).toBe(false);
+      expect(adapter.validateUrl('https://www.youtube.com/channel/UC123')).toBe(
+        false,
+      );
     });
   });
 
@@ -84,17 +109,21 @@ describe('YouTubeAdapter', () => {
     it('should import video with mock data when API key is placeholder', async () => {
       const options = {
         url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        categoryId: 'cat-123'
+        categoryId: 'cat-123',
       };
 
       const result = await adapter.importVideo(options);
 
       expect(result).toBeDefined();
       expect(result.name).toBe('Mock Video Title dQw4w9WgXcQ');
-      expect(result.description).toBe('This is a mock video description for development purposes.');
+      expect(result.description).toBe(
+        'This is a mock video description for development purposes.',
+      );
       expect(result.language).toBe(Language.ENGLISH);
       expect(result.durationSec).toBe(253); // PT4M13S = 4*60 + 13
-      expect(result.mediaUrl).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+      expect(result.mediaUrl).toBe(
+        'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      );
       expect(result.mediaType).toBe(MediaType.VIDEO);
       expect(result.sourceType).toBe(SourceType.YOUTUBE);
       expect(result.sourceUrl).toBe(options.url);
@@ -105,11 +134,15 @@ describe('YouTubeAdapter', () => {
     it('should throw BadRequestException for invalid YouTube URL', async () => {
       const options = {
         url: 'https://invalid-url.com/video',
-        categoryId: 'cat-123'
+        categoryId: 'cat-123',
       };
 
-      await expect(adapter.importVideo(options)).rejects.toThrow(BadRequestException);
-      await expect(adapter.importVideo(options)).rejects.toThrow('Invalid YouTube URL');
+      await expect(adapter.importVideo(options)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(adapter.importVideo(options)).rejects.toThrow(
+        'Invalid YouTube URL',
+      );
     });
   });
 
@@ -118,7 +151,7 @@ describe('YouTubeAdapter', () => {
       const options = {
         channelId: 'UC_test_channel',
         limit: 3,
-        categoryId: 'cat-123'
+        categoryId: 'cat-123',
       };
 
       const results = await adapter.importChannel(options);
@@ -128,11 +161,15 @@ describe('YouTubeAdapter', () => {
 
       results.forEach((result, index) => {
         expect(result.name).toBe(`Mock Channel Video ${index + 1}`);
-        expect(result.description).toContain(`Mock description for video ${index + 1}`);
+        expect(result.description).toContain(
+          `Mock description for video ${index + 1}`,
+        );
         expect(result.language).toBe(Language.ENGLISH);
         expect(result.mediaType).toBe(MediaType.VIDEO);
         expect(result.sourceType).toBe(SourceType.YOUTUBE);
-        expect(result.externalId).toBe(`mock-video-UC_test_channel-${index + 1}`);
+        expect(result.externalId).toBe(
+          `mock-video-UC_test_channel-${index + 1}`,
+        );
         expect(result.releaseDate).toBeInstanceOf(Date);
       });
     });
@@ -140,7 +177,7 @@ describe('YouTubeAdapter', () => {
     it('should respect limit parameter', async () => {
       const options = {
         channelId: 'UC_test_channel',
-        limit: 2
+        limit: 2,
       };
 
       const results = await adapter.importChannel(options);
@@ -150,7 +187,7 @@ describe('YouTubeAdapter', () => {
 
     it('should use default limit when not specified', async () => {
       const options = {
-        channelId: 'UC_test_channel'
+        channelId: 'UC_test_channel',
       };
 
       const results = await adapter.importChannel(options);
@@ -167,7 +204,7 @@ describe('YouTubeAdapter', () => {
       process.env.YOUTUBE_API_KEY = 'real_api_key';
       // Clear any previous mock implementations
       jest.clearAllMocks();
-      
+
       // Create a fresh adapter instance with the new environment variable
       const module = await Test.createTestingModule({
         providers: [YouTubeAdapter],
@@ -183,34 +220,38 @@ describe('YouTubeAdapter', () => {
 
     it('should fetch video data from YouTube API', async () => {
       const mockApiResponse = {
-        items: [{
-          id: 'dQw4w9WgXcQ',
-          snippet: {
-            title: 'Never Gonna Give You Up',
-            description: 'Rick Astley - Never Gonna Give You Up',
-            publishedAt: '2009-10-25T06:57:33Z',
-            channelId: 'UCuAXFkgsw1L7xaCfnd5JJOw',
-            defaultLanguage: 'en'
+        items: [
+          {
+            id: 'dQw4w9WgXcQ',
+            snippet: {
+              title: 'Never Gonna Give You Up',
+              description: 'Rick Astley - Never Gonna Give You Up',
+              publishedAt: '2009-10-25T06:57:33Z',
+              channelId: 'UCuAXFkgsw1L7xaCfnd5JJOw',
+              defaultLanguage: 'en',
+            },
+            contentDetails: {
+              duration: 'PT3M33S',
+            },
           },
-          contentDetails: {
-            duration: 'PT3M33S'
-          }
-        }]
+        ],
       };
 
       (global.fetch as jest.Mock).mockResolvedValue({
-        json: jest.fn().mockResolvedValue(mockApiResponse)
+        json: jest.fn().mockResolvedValue(mockApiResponse),
       });
 
       const options = {
         url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        categoryId: 'cat-123'
+        categoryId: 'cat-123',
       };
 
       const result = await realApiAdapter.importVideo(options);
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('https://www.googleapis.com/youtube/v3/videos?id=dQw4w9WgXcQ')
+        expect.stringContaining(
+          'https://www.googleapis.com/youtube/v3/videos?id=dQw4w9WgXcQ',
+        ),
       );
       expect(result.name).toBe('Never Gonna Give You Up');
       expect(result.description).toBe('Rick Astley - Never Gonna Give You Up');
@@ -219,16 +260,20 @@ describe('YouTubeAdapter', () => {
 
     it('should throw InternalServerErrorException when video not found', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
-        json: jest.fn().mockResolvedValue({ items: [] })
+        json: jest.fn().mockResolvedValue({ items: [] }),
       });
 
       const options = {
         url: 'https://www.youtube.com/watch?v=nonexistent',
-        categoryId: 'cat-123'
+        categoryId: 'cat-123',
       };
 
-      await expect(realApiAdapter.importVideo(options)).rejects.toThrow(InternalServerErrorException);
-      await expect(realApiAdapter.importVideo(options)).rejects.toThrow('Failed to import video: Video not found');
+      await expect(realApiAdapter.importVideo(options)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+      await expect(realApiAdapter.importVideo(options)).rejects.toThrow(
+        'Failed to import video: Video not found',
+      );
     });
   });
 
@@ -238,7 +283,7 @@ describe('YouTubeAdapter', () => {
     beforeEach(async () => {
       process.env.YOUTUBE_API_KEY = 'real_api_key';
       jest.clearAllMocks();
-      
+
       const module = await Test.createTestingModule({
         providers: [YouTubeAdapter],
       }).compile();
@@ -252,11 +297,8 @@ describe('YouTubeAdapter', () => {
 
     it('should fetch channel videos from YouTube API', async () => {
       const mockSearchResponse = {
-        items: [
-          { id: { videoId: 'video1' } },
-          { id: { videoId: 'video2' } }
-        ],
-        nextPageToken: null
+        items: [{ id: { videoId: 'video1' } }, { id: { videoId: 'video2' } }],
+        nextPageToken: null,
       };
 
       const mockDetailsResponse = {
@@ -268,9 +310,9 @@ describe('YouTubeAdapter', () => {
               description: 'Description 1',
               publishedAt: '2023-01-01T00:00:00Z',
               channelId: 'UC123',
-              defaultLanguage: 'en'
+              defaultLanguage: 'en',
             },
-            contentDetails: { duration: 'PT5M30S' }
+            contentDetails: { duration: 'PT5M30S' },
           },
           {
             id: 'video2',
@@ -279,24 +321,24 @@ describe('YouTubeAdapter', () => {
               description: 'Description 2',
               publishedAt: '2023-01-02T00:00:00Z',
               channelId: 'UC123',
-              defaultLanguage: 'en'
+              defaultLanguage: 'en',
             },
-            contentDetails: { duration: 'PT3M45S' }
-          }
-        ]
+            contentDetails: { duration: 'PT3M45S' },
+          },
+        ],
       };
 
       (global.fetch as jest.Mock)
         .mockResolvedValueOnce({
-          json: jest.fn().mockResolvedValue(mockSearchResponse)
+          json: jest.fn().mockResolvedValue(mockSearchResponse),
         })
         .mockResolvedValueOnce({
-          json: jest.fn().mockResolvedValue(mockDetailsResponse)
+          json: jest.fn().mockResolvedValue(mockDetailsResponse),
         });
 
       const options = {
         channelId: 'UC123',
-        limit: 2
+        limit: 2,
       };
 
       const results = await realApiAdapter.importChannel(options);
@@ -318,11 +360,11 @@ describe('YouTubeAdapter', () => {
           description: 'Test Description',
           publishedAt: '2023-01-01T12:00:00Z',
           channelId: 'UC_test',
-          defaultLanguage: 'ar'
+          defaultLanguage: 'ar',
         },
         contentDetails: {
-          duration: 'PT10M30S'
-        }
+          duration: 'PT10M30S',
+        },
       };
 
       const sourceUrl = 'https://www.youtube.com/watch?v=test123';
@@ -348,7 +390,9 @@ describe('YouTubeAdapter', () => {
 
       expect(mockData.id).toBe(videoId);
       expect(mockData.snippet.title).toBe(`Mock Video Title ${videoId}`);
-      expect(mockData.snippet.description).toBe('This is a mock video description for development purposes.');
+      expect(mockData.snippet.description).toBe(
+        'This is a mock video description for development purposes.',
+      );
       expect(mockData.snippet.channelId).toBe('mock-channel-id');
       expect(mockData.snippet.defaultLanguage).toBe('en');
       expect(mockData.contentDetails.duration).toBe('PT4M13S');
@@ -369,7 +413,9 @@ describe('YouTubeAdapter', () => {
         expect(item.id).toBe(`mock-video-${channelId}-${index + 1}`);
         expect(item.snippet.title).toBe(`Mock Channel Video ${index + 1}`);
         expect(item.snippet.channelId).toBe(channelId);
-        expect(item.contentDetails.duration).toBe(`PT${3 + index + 1}M${10 + index + 1}S`);
+        expect(item.contentDetails.duration).toBe(
+          `PT${3 + index + 1}M${10 + index + 1}S`,
+        );
       });
     });
 

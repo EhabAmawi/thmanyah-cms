@@ -1,9 +1,9 @@
 import { Language, MediaType, SourceType } from '@prisma/client';
-import { 
-  BaseContentAdapter, 
-  ImportedContent, 
-  VideoImportOptions, 
-  ChannelImportOptions 
+import {
+  BaseContentAdapter,
+  ImportedContent,
+  VideoImportOptions,
+  ChannelImportOptions,
 } from './base.adapter';
 
 class TestAdapter extends BaseContentAdapter {
@@ -21,11 +21,13 @@ class TestAdapter extends BaseContentAdapter {
       mediaType: MediaType.VIDEO,
       sourceType: this.sourceType,
       sourceUrl: options.url,
-      externalId: 'test123'
+      externalId: 'test123',
     };
   }
 
-  async importChannel(options: ChannelImportOptions): Promise<ImportedContent[]> {
+  async importChannel(
+    options: ChannelImportOptions,
+  ): Promise<ImportedContent[]> {
     return [];
   }
 
@@ -34,7 +36,7 @@ class TestAdapter extends BaseContentAdapter {
   }
 
   validateUrl(url: string): boolean {
-    return this.supportedDomains.some(domain => url.includes(domain));
+    return this.supportedDomains.some((domain) => url.includes(domain));
   }
 }
 
@@ -50,14 +52,20 @@ describe('BaseContentAdapter', () => {
       expect(adapter['mapLanguageFromString']('ar')).toBe(Language.ARABIC);
       expect(adapter['mapLanguageFromString']('Arabic')).toBe(Language.ARABIC);
       expect(adapter['mapLanguageFromString']('AR')).toBe(Language.ARABIC);
-      expect(adapter['mapLanguageFromString']('arabic-eg')).toBe(Language.ARABIC);
+      expect(adapter['mapLanguageFromString']('arabic-eg')).toBe(
+        Language.ARABIC,
+      );
     });
 
     it('should map other languages to ENGLISH', () => {
       expect(adapter['mapLanguageFromString']('en')).toBe(Language.ENGLISH);
-      expect(adapter['mapLanguageFromString']('English')).toBe(Language.ENGLISH);
+      expect(adapter['mapLanguageFromString']('English')).toBe(
+        Language.ENGLISH,
+      );
       expect(adapter['mapLanguageFromString']('fr')).toBe(Language.ENGLISH);
-      expect(adapter['mapLanguageFromString']('spanish')).toBe(Language.ENGLISH);
+      expect(adapter['mapLanguageFromString']('spanish')).toBe(
+        Language.ENGLISH,
+      );
       expect(adapter['mapLanguageFromString']('')).toBe(Language.ENGLISH);
     });
   });
@@ -66,8 +74,12 @@ describe('BaseContentAdapter', () => {
     it('should map audio types to AUDIO', () => {
       expect(adapter['mapMediaTypeFromString']('audio')).toBe(MediaType.AUDIO);
       expect(adapter['mapMediaTypeFromString']('Audio')).toBe(MediaType.AUDIO);
-      expect(adapter['mapMediaTypeFromString']('podcast')).toBe(MediaType.AUDIO);
-      expect(adapter['mapMediaTypeFromString']('PODCAST')).toBe(MediaType.AUDIO);
+      expect(adapter['mapMediaTypeFromString']('podcast')).toBe(
+        MediaType.AUDIO,
+      );
+      expect(adapter['mapMediaTypeFromString']('PODCAST')).toBe(
+        MediaType.AUDIO,
+      );
     });
 
     it('should map other types to VIDEO', () => {
@@ -75,7 +87,9 @@ describe('BaseContentAdapter', () => {
       expect(adapter['mapMediaTypeFromString']('Video')).toBe(MediaType.VIDEO);
       expect(adapter['mapMediaTypeFromString']('movie')).toBe(MediaType.VIDEO);
       expect(adapter['mapMediaTypeFromString']('')).toBe(MediaType.VIDEO);
-      expect(adapter['mapMediaTypeFromString']('unknown')).toBe(MediaType.VIDEO);
+      expect(adapter['mapMediaTypeFromString']('unknown')).toBe(
+        MediaType.VIDEO,
+      );
     });
   });
 
@@ -119,11 +133,11 @@ describe('BaseContentAdapter', () => {
     it('should implement importVideo', async () => {
       const options: VideoImportOptions = {
         url: 'https://test.com/video/123',
-        categoryId: 'cat-123'
+        categoryId: 'cat-123',
       };
-      
+
       const result = await adapter.importVideo(options);
-      
+
       expect(result).toBeDefined();
       expect(result.name).toBe('Test Video');
       expect(result.sourceType).toBe(SourceType.YOUTUBE);
@@ -133,16 +147,18 @@ describe('BaseContentAdapter', () => {
     it('should implement importChannel', async () => {
       const options: ChannelImportOptions = {
         channelId: 'channel123',
-        limit: 5
+        limit: 5,
       };
-      
+
       const result = await adapter.importChannel(options);
-      
+
       expect(result).toEqual([]);
     });
 
     it('should implement extractVideoId', () => {
-      expect(adapter.extractVideoId('https://test.com/video/123')).toBe('test123');
+      expect(adapter.extractVideoId('https://test.com/video/123')).toBe(
+        'test123',
+      );
       expect(adapter.extractVideoId('https://other.com/video/123')).toBeNull();
     });
 

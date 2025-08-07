@@ -4,7 +4,6 @@ import { ImportController } from './import.controller';
 import { ImportService } from './import.service';
 import { AdapterFactory } from './adapters/adapter.factory';
 import { YouTubeAdapter } from './adapters/youtube.adapter';
-import { PrismaModule } from '../prisma/prisma.module';
 import { PrismaService } from '../prisma/prisma.service';
 
 describe('ImportModule', () => {
@@ -14,14 +13,14 @@ describe('ImportModule', () => {
     module = await Test.createTestingModule({
       imports: [ImportModule],
     })
-    .overrideProvider(PrismaService)
-    .useValue({
-      program: {
-        findFirst: jest.fn(),
-        create: jest.fn(),
-      },
-    })
-    .compile();
+      .overrideProvider(PrismaService)
+      .useValue({
+        program: {
+          findFirst: jest.fn(),
+          create: jest.fn(),
+        },
+      })
+      .compile();
   });
 
   afterEach(async () => {
@@ -82,7 +81,7 @@ describe('ImportModule', () => {
   describe('dependency injection', () => {
     it('should inject dependencies into ImportService correctly', () => {
       const importService = module.get<ImportService>(ImportService);
-      
+
       // Test that the service can be instantiated and has access to its dependencies
       expect(importService).toBeDefined();
       expect(typeof importService.importVideo).toBe('function');
@@ -93,11 +92,11 @@ describe('ImportModule', () => {
     it('should inject YouTubeAdapter into AdapterFactory', () => {
       const adapterFactory = module.get<AdapterFactory>(AdapterFactory);
       const youtubeAdapter = module.get<YouTubeAdapter>(YouTubeAdapter);
-      
+
       // Test that the factory has access to the YouTube adapter
       expect(adapterFactory).toBeDefined();
       expect(youtubeAdapter).toBeDefined();
-      
+
       const supportedTypes = adapterFactory.getSupportedSourceTypes();
       expect(supportedTypes).toContain('YOUTUBE');
     });
@@ -105,7 +104,7 @@ describe('ImportModule', () => {
     it('should inject AdapterFactory into ImportService', () => {
       const importService = module.get<ImportService>(ImportService);
       const adapterFactory = module.get<AdapterFactory>(AdapterFactory);
-      
+
       // Both should be defined and properly connected
       expect(importService).toBeDefined();
       expect(adapterFactory).toBeDefined();
@@ -114,10 +113,10 @@ describe('ImportModule', () => {
     it('should inject ImportService into ImportController', () => {
       const controller = module.get<ImportController>(ImportController);
       const service = module.get<ImportService>(ImportService);
-      
+
       expect(controller).toBeDefined();
       expect(service).toBeDefined();
-      
+
       // Test that controller methods exist (dependency injection successful)
       expect(typeof controller.importYouTubeVideo).toBe('function');
       expect(typeof controller.importYouTubeChannel).toBe('function');
@@ -150,7 +149,7 @@ describe('ImportModule', () => {
       // This test verifies that exported services can be accessed by other modules
       const importService = module.get<ImportService>(ImportService);
       const adapterFactory = module.get<AdapterFactory>(AdapterFactory);
-      
+
       expect(importService).toBeDefined();
       expect(adapterFactory).toBeDefined();
     });
@@ -160,10 +159,10 @@ describe('ImportModule', () => {
     it('should create a working import flow', async () => {
       const controller = module.get<ImportController>(ImportController);
       const service = module.get<ImportService>(ImportService);
-      
+
       expect(controller).toBeDefined();
       expect(service).toBeDefined();
-      
+
       // Test that the full dependency chain works
       const supportedTypes = await service.getSupportedSourceTypes();
       expect(Array.isArray(supportedTypes)).toBe(true);
@@ -173,11 +172,11 @@ describe('ImportModule', () => {
     it('should handle adapter factory initialization properly', () => {
       const adapterFactory = module.get<AdapterFactory>(AdapterFactory);
       const youtubeAdapter = module.get<YouTubeAdapter>(YouTubeAdapter);
-      
+
       // Verify that the factory was properly initialized with adapters
       const supportedTypes = adapterFactory.getSupportedSourceTypes();
       expect(supportedTypes).toContain('YOUTUBE');
-      
+
       // Verify that we can get the adapter
       const retrievedAdapter = adapterFactory.getAdapter('YOUTUBE' as any);
       expect(retrievedAdapter).toBeDefined();
@@ -189,7 +188,7 @@ describe('ImportModule', () => {
       const service2 = module.get<ImportService>(ImportService);
       const factory1 = module.get<AdapterFactory>(AdapterFactory);
       const factory2 = module.get<AdapterFactory>(AdapterFactory);
-      
+
       // Services should be singletons
       expect(service1).toBe(service2);
       expect(factory1).toBe(factory2);
@@ -198,16 +197,16 @@ describe('ImportModule', () => {
 
   describe('error handling', () => {
     it('should handle missing dependencies gracefully', async () => {
-      // This test ensures that if dependencies are missing, 
+      // This test ensures that if dependencies are missing,
       // the module fails gracefully during compilation
       try {
         const testModule = await Test.createTestingModule({
           imports: [ImportModule],
         })
-        .overrideProvider(PrismaService)
-        .useValue(null) // Intentionally break the dependency
-        .compile();
-        
+          .overrideProvider(PrismaService)
+          .useValue(null) // Intentionally break the dependency
+          .compile();
+
         expect(testModule).toBeDefined();
       } catch (error) {
         // If it fails, it should fail with a meaningful error

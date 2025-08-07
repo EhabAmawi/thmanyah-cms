@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
@@ -11,6 +11,7 @@ describe('Import (e2e)', () => {
   let prisma: PrismaService;
   let jwtService: JwtService;
   let authToken: string;
+  let testCategory: any;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -26,6 +27,7 @@ describe('Import (e2e)', () => {
     // Clean up database
     await prisma.program.deleteMany();
     await prisma.employee.deleteMany();
+    await prisma.category.deleteMany();
 
     // Create test employee for authentication
     const testEmployee = await prisma.employee.create({
@@ -41,6 +43,15 @@ describe('Import (e2e)', () => {
       },
     });
 
+    // Create test category
+    testCategory = await prisma.category.create({
+      data: {
+        name: 'Test Category',
+        description: 'Category for import e2e tests',
+        isActive: true,
+      },
+    });
+
     // Generate JWT token for authentication
     authToken = jwtService.sign({
       sub: testEmployee.id,
@@ -52,6 +63,7 @@ describe('Import (e2e)', () => {
     // Clean up database
     await prisma.program.deleteMany();
     await prisma.employee.deleteMany();
+    await prisma.category.deleteMany();
     await app.close();
   });
 
@@ -80,7 +92,8 @@ describe('Import (e2e)', () => {
         imported: expect.arrayContaining([
           expect.objectContaining({
             name: 'Mock Video Title dQw4w9WgXcQ',
-            description: 'This is a mock video description for development purposes.',
+            description:
+              'This is a mock video description for development purposes.',
             language: Language.ENGLISH,
             mediaType: MediaType.VIDEO,
             sourceType: SourceType.YOUTUBE,
@@ -143,7 +156,9 @@ describe('Import (e2e)', () => {
         .expect(200);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.errors).toContain('No adapter found for URL: https://invalid-url.com/video');
+      expect(response.body.errors).toContain(
+        'No adapter found for URL: https://invalid-url.com/video',
+      );
     });
 
     it('should return 401 without authentication', async () => {
@@ -193,7 +208,9 @@ describe('Import (e2e)', () => {
       expect(savedPrograms).toHaveLength(3);
       savedPrograms.forEach((program, index) => {
         expect(program.name).toBe(`Mock Channel Video ${index + 1}`);
-        expect(program.externalId).toBe(`mock-video-UC_test_channel-${index + 1}`);
+        expect(program.externalId).toBe(
+          `mock-video-UC_test_channel-${index + 1}`,
+        );
       });
     });
 
@@ -245,7 +262,10 @@ describe('Import (e2e)', () => {
 
       expect(response.body.importedCount).toBe(0);
       expect(response.body.duplicatesSkipped).toBe(2);
-      expect(response.body.errors).toEqual(['Content already exists', 'Content already exists']);
+      expect(response.body.errors).toEqual([
+        'Content already exists',
+        'Content already exists',
+      ]);
     });
 
     it('should return 401 without authentication', async () => {
@@ -292,7 +312,9 @@ describe('Import (e2e)', () => {
         .expect(200);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.errors).toContain("Adapter for source type 'VIMEO' not found");
+      expect(response.body.errors).toContain(
+        "Adapter for source type 'VIMEO' not found",
+      );
     });
 
     it('should validate request body', async () => {
@@ -333,7 +355,9 @@ describe('Import (e2e)', () => {
         .expect(200);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.errors).toContain('No adapter found for URL: https://unsupported-platform.com/video/123');
+      expect(response.body.errors).toContain(
+        'No adapter found for URL: https://unsupported-platform.com/video/123',
+      );
     });
   });
 
@@ -350,9 +374,7 @@ describe('Import (e2e)', () => {
     });
 
     it('should return 401 without authentication', async () => {
-      await request(app.getHttpServer())
-        .get('/import/sources')
-        .expect(401);
+      await request(app.getHttpServer()).get('/import/sources').expect(401);
     });
   });
 
@@ -371,6 +393,7 @@ describe('Import (e2e)', () => {
           sourceType: SourceType.YOUTUBE,
           sourceUrl: 'https://www.youtube.com/watch?v=existing123',
           externalId: 'existing123',
+          categoryId: testCategory.id, // Add the required categoryId
         },
       });
     });
@@ -509,6 +532,7 @@ describe('Import (e2e)', () => {
           sourceType: SourceType.MANUAL,
           sourceUrl: null,
           externalId: null,
+          categoryId: testCategory.id, // Add the required categoryId
         },
       });
 
@@ -529,8 +553,12 @@ describe('Import (e2e)', () => {
       const allPrograms = await prisma.program.findMany();
       expect(allPrograms).toHaveLength(2);
 
-      const manualProgram = allPrograms.find(p => p.sourceType === SourceType.MANUAL);
-      const importedProgram = allPrograms.find(p => p.sourceType === SourceType.YOUTUBE);
+      const manualProgram = allPrograms.find(
+        (p) => p.sourceType === SourceType.MANUAL,
+      );
+      const importedProgram = allPrograms.find(
+        (p) => p.sourceType === SourceType.YOUTUBE,
+      );
 
       expect(manualProgram).toBeDefined();
       expect(importedProgram).toBeDefined();

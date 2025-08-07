@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, Logger } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { Language, MediaType, SourceType } from '@prisma/client';
 import { ImportService } from './import.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -15,7 +15,7 @@ const mockLogger = {
 
 describe('ImportService', () => {
   let service: ImportService;
-  let prismaService: jest.Mocked<PrismaService>;
+  let prismaService: any;
   let adapterFactory: jest.Mocked<AdapterFactory>;
   let mockAdapter: jest.Mocked<BaseContentAdapter>;
 
@@ -29,7 +29,7 @@ describe('ImportService', () => {
     mediaType: MediaType.VIDEO,
     sourceType: SourceType.YOUTUBE,
     sourceUrl: 'https://www.youtube.com/watch?v=test123',
-    externalId: 'test123'
+    externalId: 'test123',
   };
 
   const mockProgram = {
@@ -44,8 +44,9 @@ describe('ImportService', () => {
     sourceType: SourceType.YOUTUBE,
     sourceUrl: 'https://www.youtube.com/watch?v=test123',
     externalId: 'test123',
+    categoryId: 1,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
 
   beforeEach(async () => {
@@ -80,8 +81,8 @@ describe('ImportService', () => {
         },
       ],
     })
-    .setLogger(mockLogger)
-    .compile();
+      .setLogger(mockLogger)
+      .compile();
 
     service = module.get<ImportService>(ImportService);
     prismaService = module.get(PrismaService);
@@ -91,7 +92,7 @@ describe('ImportService', () => {
   describe('importVideo', () => {
     const importVideoDto = {
       url: 'https://www.youtube.com/watch?v=test123',
-      categoryId: 'cat-123'
+      categoryId: 'cat-123',
     };
 
     it('should successfully import a video', async () => {
@@ -145,7 +146,9 @@ describe('ImportService', () => {
       adapterFactory.getAdapterByUrl.mockReturnValue(mockAdapter);
       mockAdapter.importVideo.mockResolvedValue(mockImportedContent);
       prismaService.program.findFirst.mockResolvedValue(null);
-      prismaService.program.create.mockRejectedValue(new Error('Database error'));
+      prismaService.program.create.mockRejectedValue(
+        new Error('Database error'),
+      );
 
       const result = await service.importVideo(importVideoDto);
 
@@ -162,17 +165,29 @@ describe('ImportService', () => {
     const importChannelDto = {
       channelId: 'UC_test_channel',
       limit: 2,
-      categoryId: 'cat-123'
+      categoryId: 'cat-123',
     };
 
     const mockChannelContent = [
       { ...mockImportedContent, name: 'Video 1', externalId: 'vid1' },
-      { ...mockImportedContent, name: 'Video 2', externalId: 'vid2' }
+      { ...mockImportedContent, name: 'Video 2', externalId: 'vid2' },
     ];
 
     const mockPrograms = [
-      { ...mockProgram, id: 1, name: 'Video 1', externalId: 'vid1' },
-      { ...mockProgram, id: 2, name: 'Video 2', externalId: 'vid2' }
+      {
+        ...mockProgram,
+        id: 1,
+        name: 'Video 1',
+        externalId: 'vid1',
+        categoryId: 1,
+      },
+      {
+        ...mockProgram,
+        id: 2,
+        name: 'Video 2',
+        externalId: 'vid2',
+        categoryId: 1,
+      },
     ];
 
     it('should successfully import channel videos', async () => {
@@ -183,14 +198,19 @@ describe('ImportService', () => {
         .mockResolvedValueOnce(mockPrograms[0])
         .mockResolvedValueOnce(mockPrograms[1]);
 
-      const result = await service.importChannel(SourceType.YOUTUBE, importChannelDto);
+      const result = await service.importChannel(
+        SourceType.YOUTUBE,
+        importChannelDto,
+      );
 
       expect(result.success).toBe(true);
       expect(result.importedCount).toBe(2);
       expect(result.duplicatesSkipped).toBe(0);
       expect(result.imported).toHaveLength(2);
       expect(result.errors).toHaveLength(0);
-      expect(result.message).toBe('Successfully imported 2 videos, skipped 0 duplicates');
+      expect(result.message).toBe(
+        'Successfully imported 2 videos, skipped 0 duplicates',
+      );
     });
 
     it('should handle mixed success and duplicates', async () => {
@@ -201,7 +221,10 @@ describe('ImportService', () => {
         .mockResolvedValueOnce(mockPrograms[1]); // Second video is duplicate
       prismaService.program.create.mockResolvedValueOnce(mockPrograms[0]);
 
-      const result = await service.importChannel(SourceType.YOUTUBE, importChannelDto);
+      const result = await service.importChannel(
+        SourceType.YOUTUBE,
+        importChannelDto,
+      );
 
       expect(result.success).toBe(true);
       expect(result.importedCount).toBe(1);
@@ -209,7 +232,9 @@ describe('ImportService', () => {
       expect(result.imported).toHaveLength(1);
       expect(result.imported[0].name).toBe('Video 1');
       expect(result.errors).toEqual(['Content already exists']);
-      expect(result.message).toBe('Successfully imported 1 videos, skipped 1 duplicates, encountered 1 errors');
+      expect(result.message).toBe(
+        'Successfully imported 1 videos, skipped 1 duplicates, encountered 1 errors',
+      );
     });
 
     it('should handle adapter error', async () => {
@@ -217,7 +242,10 @@ describe('ImportService', () => {
         throw new BadRequestException('Invalid channel ID');
       });
 
-      const result = await service.importChannel(SourceType.YOUTUBE, importChannelDto);
+      const result = await service.importChannel(
+        SourceType.YOUTUBE,
+        importChannelDto,
+      );
 
       expect(result.success).toBe(false);
       expect(result.importedCount).toBe(0);
@@ -232,7 +260,7 @@ describe('ImportService', () => {
     const importBySourceDto = {
       sourceType: SourceType.YOUTUBE,
       url: 'https://www.youtube.com/watch?v=test123',
-      categoryId: 'cat-123'
+      categoryId: 'cat-123',
     };
 
     it('should import single video when URL contains video ID', async () => {
@@ -249,7 +277,7 @@ describe('ImportService', () => {
       expect(result.message).toBe('Content imported successfully');
       expect(mockAdapter.importVideo).toHaveBeenCalledWith({
         url: importBySourceDto.url,
-        categoryId: importBySourceDto.categoryId
+        categoryId: importBySourceDto.categoryId,
       });
     });
 
@@ -261,7 +289,9 @@ describe('ImportService', () => {
 
       expect(result.success).toBe(false);
       expect(result.importedCount).toBe(0);
-      expect(result.errors).toEqual(['Channel import not yet supported via this endpoint. Use the specific channel import endpoint.']);
+      expect(result.errors).toEqual([
+        'Channel import not yet supported via this endpoint. Use the specific channel import endpoint.',
+      ]);
       expect(result.message).toBe('Failed to import content');
     });
 
@@ -294,28 +324,34 @@ describe('ImportService', () => {
     it('should return true when duplicate exists', async () => {
       prismaService.program.findFirst.mockResolvedValue(mockProgram);
 
-      const result = await service.checkDuplicate('test123', SourceType.YOUTUBE);
+      const result = await service.checkDuplicate(
+        'test123',
+        SourceType.YOUTUBE,
+      );
 
       expect(result).toBe(true);
       expect(prismaService.program.findFirst).toHaveBeenCalledWith({
         where: {
           externalId: 'test123',
-          sourceType: SourceType.YOUTUBE
-        }
+          sourceType: SourceType.YOUTUBE,
+        },
       });
     });
 
     it('should return false when no duplicate exists', async () => {
       prismaService.program.findFirst.mockResolvedValue(null);
 
-      const result = await service.checkDuplicate('test123', SourceType.YOUTUBE);
+      const result = await service.checkDuplicate(
+        'test123',
+        SourceType.YOUTUBE,
+      );
 
       expect(result).toBe(false);
       expect(prismaService.program.findFirst).toHaveBeenCalledWith({
         where: {
           externalId: 'test123',
-          sourceType: SourceType.YOUTUBE
-        }
+          sourceType: SourceType.YOUTUBE,
+        },
       });
     });
   });
@@ -346,7 +382,9 @@ describe('ImportService', () => {
 
     it('should handle database create error', async () => {
       prismaService.program.findFirst.mockResolvedValue(null);
-      prismaService.program.create.mockRejectedValue(new Error('Database error'));
+      prismaService.program.create.mockRejectedValue(
+        new Error('Database error'),
+      );
 
       const result = await service['importSingleContent'](mockImportedContent);
 
@@ -360,14 +398,24 @@ describe('ImportService', () => {
   describe('importMultipleContent', () => {
     const multipleContent = [
       { ...mockImportedContent, name: 'Video 1', externalId: 'vid1' },
-      { ...mockImportedContent, name: 'Video 2', externalId: 'vid2' }
+      { ...mockImportedContent, name: 'Video 2', externalId: 'vid2' },
     ];
 
     it('should import multiple content items', async () => {
       prismaService.program.findFirst.mockResolvedValue(null);
       prismaService.program.create
-        .mockResolvedValueOnce({ ...mockProgram, id: 1, name: 'Video 1' })
-        .mockResolvedValueOnce({ ...mockProgram, id: 2, name: 'Video 2' });
+        .mockResolvedValueOnce({
+          ...mockProgram,
+          id: 1,
+          name: 'Video 1',
+          categoryId: 1,
+        })
+        .mockResolvedValueOnce({
+          ...mockProgram,
+          id: 2,
+          name: 'Video 2',
+          categoryId: 1,
+        });
 
       const results = await service['importMultipleContent'](multipleContent);
 
@@ -382,7 +430,12 @@ describe('ImportService', () => {
       prismaService.program.findFirst
         .mockResolvedValueOnce(null) // First video is new
         .mockResolvedValueOnce(mockProgram); // Second video is duplicate
-      prismaService.program.create.mockResolvedValueOnce({ ...mockProgram, id: 1, name: 'Video 1' });
+      prismaService.program.create.mockResolvedValueOnce({
+        ...mockProgram,
+        id: 1,
+        name: 'Video 1',
+        categoryId: 1,
+      });
 
       const results = await service['importMultipleContent'](multipleContent);
 
@@ -408,7 +461,7 @@ describe('ImportService', () => {
         mediaType: mockProgram.mediaType,
         sourceType: mockProgram.sourceType,
         sourceUrl: mockProgram.sourceUrl,
-        externalId: mockProgram.externalId
+        externalId: mockProgram.externalId,
       });
     });
 
